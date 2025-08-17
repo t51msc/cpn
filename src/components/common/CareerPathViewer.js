@@ -9,6 +9,7 @@ import {
   CheckCircle, XCircle, Clipboard, Smartphone, FileCode
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // ==================== 모달 컴포넌트들 ====================
 
@@ -405,6 +406,7 @@ const CareerPathViewer = ({
   onAdminModeToggle,
   renderBottomPanel
 }) => {
+  const navigate = useNavigate();
   const location = useLocation();
   
   // ==================== 상태 관리 ====================
@@ -1754,7 +1756,7 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
     <div className="flex items-center space-x-4 flex-wrap">
               {/* 직무 선택 돌아가기 버튼 추가 */}
               <button
-                onClick={() => window.location.href = '/career-selection'}
+                onClick={() => navigate('/')}
                 className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
