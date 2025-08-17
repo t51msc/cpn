@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AnimatedBackground from './components/common/AnimatedBackground';
 import LandingPage from './components/pages/LandingPage';
 import './App.css';
