@@ -1,0 +1,133 @@
+/* 기존 스타일들은 그대로 유지하고 아래 추가 */
+
+/* 애니메이션 정의 */
+@keyframes fade-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+/* 메탈릭 그라디언트 */
+.metallic-gradient {
+  background: linear-gradient(135deg, #6b7280, #9ca3af, #6b7280);
+}
+
+.admin-gradient {
+  background: linear-gradient(135deg, #ef4444, #f59e0b, #ef4444);
+}
+
+.metallic-glow {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+/* 메탈릭 버튼 */
+.metallic-button {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  position: relative;
+}
+
+.metallic-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(156, 163, 175, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.metallic-button:hover::before {
+  opacity: 1;
+}
+
+/* 향상된 스캔라인 */
+.scanlines-thick::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(156, 163, 175, 0.05) 50%,
+    transparent 100%
+  );
+  animation: scanline-thick 12s linear infinite;
+}
+
+@keyframes scanline-thick {
+  0% { transform: translateY(-50vh); }
+  100% { transform: translateY(50vh); }
+}
+
+/* 글리치 효과 향상 */
+.glitch-lines::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 0, 0, 0.3);
+  animation: glitch-line 2s infinite;
+}
+
+.glitch-lines::after {
+  content: "";
+  position: absolute;
+  top: 60%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 255, 255, 0.2);
+  animation: glitch-line 2.5s infinite;
+}
+
+@keyframes glitch-line {
+  0%, 90% { opacity: 0; transform: translateX(0); }
+  91% { opacity: 1; transform: translateX(-100%); }
+  98% { opacity: 1; transform: translateX(100%); }
+  100% { opacity: 0; transform: translateX(0); }
+}
+
+/* 그리드 스크롤 애니메이션 */
+.grid-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+@keyframes grid-scroll {
+  0% { 
+    background-position: 0 0;
+  }
+  100% { 
+    background-position: 0 50px;
+  }
+}
+
+/* Tailwind 클래스를 위한 커스텀 유틸리티 */
+.duration-1500 {
+  transition-duration: 1500ms;
+}
+
+/* 그레이스케일 아이콘 (필요시) */
+.grayscale-icon {
+  filter: grayscale(100%) contrast(0.8) brightness(0.9);
+  opacity: 0.7;
+}
