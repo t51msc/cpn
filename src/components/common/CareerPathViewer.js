@@ -447,7 +447,9 @@ const CareerPathViewer = ({
   const [highContrastMode, setHighContrastMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [touchStartDistance, setTouchStartDistance] = useState(0);
-  const [hoveredConnection, setHoveredConnection] = useState(null); 
+  const [hoveredConnection, setHoveredConnection] = useState(null);
+  const [scale, setScale] = useState(1);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
 
   // 상수 정의
   const GRID_SIZE = 0.5;
@@ -668,16 +670,21 @@ const handleTouchMove = useCallback((e) => {
   
   // ==================== 자동 레이아웃 ====================
   
-  const autoLayout = useCallback(() => {
+const autoLayout = useCallback(() => {
   const newNodes = { ...nodes };
   
-// projectType별로 그룹화 (구축 20%, 복합 40%, 운영 20%)
-  const typeGroups = {
-    construction: { nodes: [], xRange: [5, 25] },    // 20% 영역
-    hybrid: { nodes: [], xRange: [30, 70] },         // 40% 영역 (겹침 제거)
-    operation: { nodes: [], xRange: [75, 95] }       // 20% 영역
+  // 화면 크기에 따른 영역 조정
+  const isMobileView = viewportWidth <= 768;
+  
+  const typeGroups = isMobileView ? {
+    construction: { nodes: [], xRange: [10, 30] },
+    hybrid: { nodes: [], xRange: [35, 65] },
+    operation: { nodes: [], xRange: [70, 90] }
+  } : {
+    construction: { nodes: [], xRange: [5, 25] },
+    hybrid: { nodes: [], xRange: [30, 70] },
+    operation: { nodes: [], xRange: [75, 95] }
   };
-
   // 레벨별, 타입별로 분류
   const levelTypeNodes = {};
   
@@ -729,7 +736,7 @@ const handleTouchMove = useCallback((e) => {
   addToHistory(nodes);
   setNodes(newNodes);
   setUnsavedChanges(true);
-}, [nodes, addToHistory]);
+}, [nodes, addToHistory, viewportWidth]);
   // ==================== 다중 선택 ====================
   
   const handleNodeSelection = useCallback((nodeId, e) => {
@@ -774,7 +781,7 @@ const handleTouchMove = useCallback((e) => {
     addToHistory(nodes);
     setNodes(prev => ({ ...prev, [newId]: newNode }));
     setUnsavedChanges(true);
-  }, [nodes, addToHistory]);
+}, [nodes, addToHistory, viewportWidth]);
   
   // ==================== 노드 붙여넣기 ====================
   
@@ -876,7 +883,7 @@ const deleteMultipleNodes = useCallback((nodeIds) => {
     setSelectedNodes([]);
     setUnsavedChanges(true);
   }
-}, [nodes, addToHistory]);
+}, [nodes, addToHistory, viewportWidth]);
 
 // ==================== 연결 유효성 검사 ====================
 
@@ -1004,7 +1011,7 @@ const visibleNodes = useMemo(() => {
   
   // ==================== 모바일 감지 ====================
   
-  useEffect(() => {
+useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
     };
@@ -1012,6 +1019,33 @@ const visibleNodes = useMemo(() => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 반응형 스케일 계산
+  useEffect(() => {
+    const calculateScale = () => {
+      const width = window.innerWidth;
+      setViewportWidth(width);
+      
+      if (width <= 375) {
+        setScale(0.5);
+      } else if (width <= 480) {
+        setScale(0.6);
+      } else if (width <= 768) {
+        setScale(0.75);
+      } else if (width <= 1024) {
+        setScale(0.85);
+      } else if (width <= 1440) {
+        setScale(1);
+      } else {
+        setScale(1.1);
+      }
+    };
+    
+    calculateScale();
+    window.addEventListener('resize', calculateScale);
+    
+    return () => window.removeEventListener('resize', calculateScale);
   }, []);
 
 // ==================== 컨테이너 크기 변화 감지 ====================
@@ -1367,7 +1401,7 @@ const y = (e.clientY - rect.top - pan.y);
     setNodes(prev => ({ ...prev, [newId]: newNode }));
     setEditingNode(newId);
     setUnsavedChanges(true);
-  }, [nodes, addToHistory]);
+ }, [nodes, addToHistory, viewportWidth]);
   
   // ==================== 데이터 저장/불러오기 ====================
   
@@ -1511,24 +1545,28 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
       }
     };
     reader.readAsText(file);
-  }, [nodes, addToHistory]);
+ }, [nodes, addToHistory, viewportWidth]);
   
   // ==================== UI 렌더링 ====================
   
   return (
     <>
-      {/* 상단 컨트롤 패널 */}
+{/* 상단 컨트롤 패널 */}
       <div className="relative z-10 px-6 pb-4">
         <div className="backdrop-blur-xl bg-black/90 rounded-xl border border-gray-700/50 p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-    <div className="flex items-center space-x-4 flex-wrap">
+          <div className={`flex items-center justify-between ${
+            viewportWidth <= 768 ? 'flex-col space-y-3' : 'flex-row flex-wrap gap-4'
+          }`}>
+    <div className={`flex items-center ${
+      viewportWidth <= 768 ? 'w-full justify-between' : 'space-x-4 flex-wrap'
+    }`}>
               {/* 직무 선택 돌아가기 버튼 추가 */}
               <button
                 onClick={() => navigate('/')}
                 className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">직무 선택</span>
+                {viewportWidth > 480 && <span className="text-sm">직무 선택</span>}
               </button>
 
               {/* 구분선 추가 */}
@@ -1559,40 +1597,64 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                 </button>
               )}
 
-              {!isAdminMode && (
+                  {!isAdminMode && (
                 <>
-                  {/* 뷰 모드 선택 */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        setViewMode('explore');
-                        setTargetNode(null);
-                      }}
-                      className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                        viewMode === 'explore' 
-                          ? 'bg-gray-700 text-white' 
-                          : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
-                      }`}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                      <span className="text-sm">경로 탐색</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        setViewMode('target');
-                        setSelectedPath([]);
-                      }}
-                      className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                        viewMode === 'target' 
-                          ? 'bg-gray-700 text-white' 
-                          : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
-                      }`}
-                    >
-                      <Target className="w-4 h-4" />
-                      <span className="text-sm">목표 설정</span>
-                    </button>
-                  </div>
+                  {/* 뷰 모드 선택 - 데스크톱 */}
+                  {viewportWidth > 768 && (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setViewMode('explore');
+                          setTargetNode(null);
+                        }}
+                        className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+                          viewMode === 'explore' 
+                            ? 'bg-gray-700 text-white' 
+                            : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
+                        }`}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                        <span className="text-sm">경로 탐색</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setViewMode('target');
+                          setSelectedPath([]);
+                        }}
+                        className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+                          viewMode === 'target' 
+                            ? 'bg-gray-700 text-white' 
+                            : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
+                        }`}
+                      >
+                        <Target className="w-4 h-4" />
+                        <span className="text-sm">목표 설정</span>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* 뷰 모드 선택 - 모바일 */}
+                  {viewportWidth <= 768 && (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setViewMode('explore')}
+                        className={`px-2 py-1.5 rounded-lg ${
+                          viewMode === 'explore' ? 'bg-gray-700' : 'bg-gray-800'
+                        }`}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('target')}
+                        className={`px-2 py-1.5 rounded-lg ${
+                          viewMode === 'target' ? 'bg-gray-700' : 'bg-gray-800'
+                        }`}
+                      >
+                        <Target className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -2266,7 +2328,7 @@ const endX = (node.x / 100) * actualWidth;
                 )}
 
                 {/* 노드 카드 */}
-                <div className={`relative backdrop-blur-xl rounded-2xl border transition-all duration-300 p-4 ${
+                <div className={`relative backdrop-blur-xl rounded-2xl border transition-all duration-300 ${
                   isInPath || (targetNode === node.id) || isSelected
                     ? 'bg-gray-600/30 border-gray-400/50 shadow-2xl scale-105'
                     : isTargetPath
@@ -2278,7 +2340,12 @@ const endX = (node.x / 100) * actualWidth;
                     : hoveredNode === node.id
                     ? 'bg-black/80 border-gray-600/50 scale-105'
                     : 'bg-black/70 border-gray-700/50'
-                } w-42`}>
+                }`} 
+                style={{
+                  width: `${viewportWidth <= 768 ? 140 * scale : 168}px`,
+                  padding: `${viewportWidth <= 768 ? 12 * scale : 16}px`,
+                  fontSize: `${viewportWidth <= 768 ? 14 * scale : 14}px`
+                }}>
                   {/* 관리자 모드 버튼들 */}
                   {isAdminMode && hoveredNode === node.id && (
                     <div className="absolute -top-3 -right-3 flex space-x-1">
@@ -2355,13 +2422,17 @@ const endX = (node.x / 100) * actualWidth;
                   )}
 
                 <div className="flex items-start space-x-3">
-                  <span className="text-2xl">{node.icon}</span>
+                  <span style={{ fontSize: `${viewportWidth <= 768 ? 24 * scale : 28}px` }}>
+                    {node.icon}
+                  </span>
                   <div className="flex-1">
-                    <h3 className={`font-bold text-sm mb-1 ${highContrastMode ? 'text-white' : ''}`}>
+                    <h3 className={`font-bold mb-1 ${highContrastMode ? 'text-white' : ''}`}
+                        style={{ fontSize: `${viewportWidth <= 768 ? 12 * scale : 14}px` }}>
                       {node.title}
                     </h3>
                     {/* year 부분 삭제됨 */}
-                    <p className={`text-xs mt-1 ${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}>
+                    <p className={`mt-1 ${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
+                       style={{ fontSize: `${viewportWidth <= 768 ? 10 * scale : 12}px` }}>
                       {node.salary}
                     </p>
                   </div>
