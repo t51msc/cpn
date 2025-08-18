@@ -1,5 +1,5 @@
 // PlannerPath.js
-// 자동 생성된 파일 - 2025-08-17T10:04:11.825Z
+// 자동 생성된 파일 - 2025-08-18T18:16:37.350Z
 import React from 'react';
 import AnimatedBackground from '../common/AnimatedBackground';
 import CareerPathViewer from '../common/CareerPathViewer';
@@ -1093,14 +1093,14 @@ const PlannerPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-6 pt-6">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="metallic-text">웹 기획자 커리어패스</span>
-          </h1>
-          <p className="text-gray-400 mb-6">
-            서비스 기획부터 프로덕트 매니지먼트, 그리고 비즈니스 리더십까지
-          </p>
-        </div>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+    <span className="metallic-text">웹 기획자 커리어패스</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
+    서비스 기획부터 프로덕트 매니지먼트, 그리고 비즈니스 리더십까지
+  </p>
+</div>
         
         <CareerPathViewer 
           initialNodes={plannerNodes}

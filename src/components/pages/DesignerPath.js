@@ -1,5 +1,5 @@
 // DesignerPath.js
-// 자동 생성된 파일 - 2025-08-17T13:25:09.958Z
+// 자동 생성된 파일 - 2025-08-18T18:15:14.070Z
 import React from 'react';
 import AnimatedBackground from '../common/AnimatedBackground';
 import CareerPathViewer from '../common/CareerPathViewer';
@@ -937,7 +937,7 @@ const DesignerPath = () => {
         salary: "1억-1.5억원",
         icon: "🎭",
         level: 5,
-        x: 49,
+        x: 50,
         projectType: "hybrid",
         description: "최고 크리에이티브 책임자 (Chief Creative Officer)",
         skills: [
@@ -962,7 +962,7 @@ const DesignerPath = () => {
         salary: "1억-1.5억원",
         icon: "🏢",
         level: 5,
-        x: 57,
+        x: 59.5,
         projectType: "hybrid",
         description: "디자인 부문 부사장",
         skills: [
@@ -988,7 +988,7 @@ const DesignerPath = () => {
         salary: "1억-1.5억원",
         icon: "🎯",
         level: 5,
-        x: 31,
+        x: 30.5,
         projectType: "hybrid",
         description: "최고 제품 책임자 (Chief Product Officer)",
         skills: [
@@ -1012,7 +1012,7 @@ const DesignerPath = () => {
         salary: "1억-1.5억원",
         icon: "📊",
         level: 5,
-        x: 41,
+        x: 40,
         projectType: "hybrid",
         description: "최고 마케팅 책임자 (Chief Marketing Officer)",
         skills: [
@@ -1036,7 +1036,7 @@ const DesignerPath = () => {
         salary: "9,000만-1.2억원",
         icon: "🎯",
         level: 5,
-        x: 66,
+        x: 69,
         projectType: "hybrid",
         description: "사업개발 이사",
         skills: [
@@ -1289,14 +1289,14 @@ const DesignerPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-6 pt-6">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="metallic-text">웹 디자이너 커리어패스</span>
-          </h1>
-          <p className="text-gray-400 mb-6">
-            비주얼 디자인부터 UI/UX, 그리고 크리에이티브 리더십까지
-          </p>
-        </div>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+    <span className="metallic-text">웹 디자이너 커리어패스</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
+    비주얼 디자인부터 UI/UX, 그리고 크리에이티브 리더십까지
+  </p>
+</div>
         
         <CareerPathViewer 
           initialNodes={designerNodes}

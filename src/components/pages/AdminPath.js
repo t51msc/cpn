@@ -1,5 +1,5 @@
 // AdminPath.js
-// 자동 생성된 파일 - 2025-08-17T06:38:52.258Z
+// 자동 생성된 파일 - 2025-08-18T18:17:31.421Z
 import React from 'react';
 import AnimatedBackground from '../common/AnimatedBackground';
 import CareerPathViewer from '../common/CareerPathViewer';
@@ -355,7 +355,7 @@ const AdminPath = () => {
         salary: "4,800-6,200만원",
         icon: "📝",
         level: 2,
-        x: 61.5,
+        x: 61,
         projectType: "hybrid",
         description: "계약 관리 및 협상 전문가",
         skills: [
@@ -1152,7 +1152,7 @@ const AdminPath = () => {
         salary: "6,500-8,500만원",
         icon: "🛡️",
         level: 3,
-        x: 69,
+        x: 70,
         projectType: "hybrid",
         description: "Network & Security Manager, 네트워크 인프라 운영, 보안 통합 관리, 팀 리딩, 보안 사고대응, 네트워크 인프라 강화 총괄",
         skills: [
@@ -1183,7 +1183,7 @@ const AdminPath = () => {
         salary: "9,000만-1.3억원",
         icon: "💻",
         level: 4,
-        x: 69.5,
+        x: 70,
         projectType: "hybrid",
         description: "Network & Security Director, 기업 전반의 네트워크 및 보안 전략 총괄, 인프라 설계·운영및 보안 거버넌스, 정책, 예산 운영/수립 등.",
         skills: [
@@ -1263,14 +1263,14 @@ const AdminPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-6 pt-6">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="metallic-text">경영지원 커리어패스</span>
-          </h1>
-          <p className="text-gray-400 mb-6">
-            회계/인사/총무부터 전략 기획, 그리고 경영 리더십까지
-          </p>
-        </div>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+    <span className="metallic-text">경영지원 커리어패스</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
+    회계/인사/총무부터 전략 기획, 그리고 경영 리더십까지
+  </p>
+</div>
         
         <CareerPathViewer 
           initialNodes={adminNodes}

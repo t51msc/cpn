@@ -1,5 +1,5 @@
 // PublisherPath.js
-// 개선된 버전 - 2025-08-17
+// 자동 생성된 파일 - 2025-08-18T18:13:39.095Z
 import React from 'react';
 import AnimatedBackground from '../common/AnimatedBackground';
 import CareerPathViewer from '../common/CareerPathViewer';
@@ -218,7 +218,7 @@ const PublisherPath = () => {
     },
     web_maintenance: {
         id: "web_maintenance",
-        title: "웹 유지보수 담당자",
+        title: "유지보수 담당",
         year: "4-7년차",
         salary: "3,600-4,600만원",
         level: 1,
@@ -431,7 +431,7 @@ const PublisherPath = () => {
     },
     technical_trainer: {
         id: "technical_trainer",
-        title: "기술 교육 담당자",
+        title: "기술 교육 담당",
         year: "8-12년차",
         salary: "4,500-5,500만원",
         icon: "📚",
@@ -1109,14 +1109,14 @@ const PublisherPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-6 pt-6">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="metallic-text">웹 퍼블리셔 커리어패스</span>
-          </h1>
-          <p className="text-gray-400 mb-6">
-            HTML/CSS부터 프론트엔드 개발, 그리고 기술 리더십까지
-          </p>
-        </div>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+    <span className="metallic-text">웹 퍼블리셔 커리어패스</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
+    HTML/CSS부터 프론트엔드 개발, 그리고 기술 리더십까지
+  </p>
+</div>
         
         <CareerPathViewer 
           initialNodes={publisherNodes}

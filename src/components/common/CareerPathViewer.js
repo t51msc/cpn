@@ -1021,25 +1021,24 @@ useEffect(() => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 반응형 스케일 계산
+// 반응형 스케일 계산 - 연속적인 스케일링
   useEffect(() => {
     const calculateScale = () => {
       const width = window.innerWidth;
       setViewportWidth(width);
       
-      if (width <= 375) {
-        setScale(0.5);
-      } else if (width <= 480) {
-        setScale(0.6);
-      } else if (width <= 768) {
-        setScale(0.75);
-      } else if (width <= 1024) {
-        setScale(0.85);
-      } else if (width <= 1440) {
-        setScale(1);
+      // 연속적인 스케일 계산 (320px ~ 1920px)
+      let calculatedScale;
+      if (width <= 320) {
+        calculatedScale = 0.4;
+      } else if (width >= 1920) {
+        calculatedScale = 1.0;
       } else {
-        setScale(1.1);
+        // 320px에서 0.4, 1920px에서 1.0으로 선형 보간
+        calculatedScale = 0.4 + ((width - 320) / (1920 - 320)) * 0.6;
       }
+      
+      setScale(calculatedScale);
     };
     
     calculateScale();
@@ -1467,14 +1466,14 @@ const ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-6 pt-6">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="metallic-text">${getCareerTitle(careerType)} 커리어패스</span>
-          </h1>
-          <p className="text-gray-400 mb-6">
-            ${getCareerDescription(careerType)}
-          </p>
-        </div>
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+    <span className="metallic-text">${getCareerTitle(careerType)} 커리어패스</span>
+  </h1>
+  <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
+    ${getCareerDescription(careerType)}
+  </p>
+</div>
         
         <CareerPathViewer 
           initialNodes={${nodeVarName}}
@@ -1658,30 +1657,34 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                 </>
               )}
 
-              {/* 필터 */}
-              <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-gray-500" />
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:border-gray-500 focus:outline-none"
-                >
-                  <option value="all">전체 보기</option>
-                  <option value="construction">구축 프로젝트</option>
-                  <option value="operation">운영 프로젝트</option>
-                  <option value="hybrid">복합형</option>
-                </select>
-              </div>
+              {/* 필터 - 데스크톱에서만 표시 */}
+              {!isMobile && (
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:border-gray-500 focus:outline-none"
+                  >
+                    <option value="all">전체 보기</option>
+                    <option value="construction">구축 프로젝트</option>
+                    <option value="operation">운영 프로젝트</option>
+                    <option value="hybrid">복합형</option>
+                  </select>
+                </div>
+              )}
 
-              {/* 검색 */}
-              <button
-                onClick={() => setShowSearch(true)}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
-                title="Ctrl+F"
-              >
-                <Search className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">검색</span>
-              </button>
+              {/* 검색 - 데스크톱에서만 표시 */}
+              {!isMobile && (
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
+                  title="Ctrl+F"
+                >
+                  <Search className="w-4 h-4" />
+                  <span className="text-sm hidden sm:inline">검색</span>
+                </button>
+              )}
 
 
 
@@ -2342,9 +2345,9 @@ const endX = (node.x / 100) * actualWidth;
                     : 'bg-black/70 border-gray-700/50'
                 }`} 
                 style={{
-                  width: `${viewportWidth <= 768 ? 140 * scale : 168}px`,
-                  padding: `${viewportWidth <= 768 ? 12 * scale : 16}px`,
-                  fontSize: `${viewportWidth <= 768 ? 14 * scale : 14}px`
+                  width: `${168 * scale}px`,
+                  padding: `${10 * scale}px`,
+                  fontSize: `${12 * scale}px`
                 }}>
                   {/* 관리자 모드 버튼들 */}
                   {isAdminMode && hoveredNode === node.id && (
@@ -2384,8 +2387,12 @@ const endX = (node.x / 100) * actualWidth;
 
                   {/* 선택 가능 표시 */}
                   {isSelectable && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center animate-pulse">
-                      <ChevronRight className="w-3 h-3" />
+                    <div className="absolute -top-2 -right-2 bg-gray-500 rounded-full flex items-center justify-center animate-pulse"
+                         style={{
+                           width: `${20 * scale}px`,
+                           height: `${20 * scale}px`
+                         }}>
+                      <ChevronRight style={{ width: `${9 * scale}px`, height: `${9 * scale}px` }} />
                     </div>
                   )}
 
@@ -2405,7 +2412,12 @@ const endX = (node.x / 100) * actualWidth;
 
                   {/* 레벨 인디케이터 */}
                   {!selectedNodes.includes(node.id) && (
-                    <div className="absolute -top-2 -left-2 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs font-bold">
+                    <div className="absolute -top-2 -left-2 bg-gray-800 rounded-full flex items-center justify-center font-bold"
+                         style={{
+                           width: `${20 * scale}px`,
+                           height: `${20 * scale}px`,
+                           fontSize: `${10 * scale}px`
+                         }}>
                       L{node.level}
                     </div>
                   )}
@@ -2421,32 +2433,42 @@ const endX = (node.x / 100) * actualWidth;
                     </div>
                   )}
 
-                <div className="flex items-start space-x-3">
-                  <span style={{ fontSize: `${viewportWidth <= 768 ? 24 * scale : 28}px` }}>
+                <div className="flex items-start" style={{ gap: `${8 * scale}px` }}>
+                  <span style={{ fontSize: `${20 * scale}px` }}>
                     {node.icon}
                   </span>
                   <div className="flex-1">
-                    <h3 className={`font-bold mb-1 ${highContrastMode ? 'text-white' : ''}`}
-                        style={{ fontSize: `${viewportWidth <= 768 ? 12 * scale : 14}px` }}>
+                    <h3 className={`font-bold ${highContrastMode ? 'text-white' : ''}`}
+                        style={{ 
+                          fontSize: `${16 * scale}px`,
+                          marginBottom: `${4 * scale}px`
+                        }}>
                       {node.title}
                     </h3>
                     {/* year 부분 삭제됨 */}
-                    <p className={`mt-1 ${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
-                       style={{ fontSize: `${viewportWidth <= 768 ? 10 * scale : 12}px` }}>
+                    <p className={`${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
+                       style={{ 
+                         fontSize: `${11 * scale}px`,
+                         marginTop: `${4 * scale}px`
+                       }}>
                       {node.salary}
                     </p>
                   </div>
                 </div>
 
                 {/* 프로젝트 타입 인디케이터 - 우측 하단으로 이동하고 색상 추가 */}
-                <div className="mt-3 flex items-center justify-end">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                <div className="flex items-center justify-end" style={{ marginTop: `${7 * scale}px` }}>
+                  <span className={`rounded-full font-medium ${
                     node.projectType === 'operation' 
                       ? 'bg-green-600/30 text-green-300 border border-green-500/30'
                       : node.projectType === 'construction'
                       ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
                       : 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                  }`}>
+                  }`}
+                  style={{
+                    fontSize: `${11 * scale}px`,
+                    padding: `${3 * scale}px ${6 * scale}px`
+                  }}>
                     {node.projectType === 'operation' ? '운영' :
                     node.projectType === 'construction' ? '구축' : '복합'}
                   </span>

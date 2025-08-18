@@ -259,10 +259,10 @@ const handleBack = () => {
             <div className="max-w-4xl w-full">
               {/* 타이틀 */}
               <div className="text-center mb-16">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-wider">
-                  <span className="metallic-text">당신의 직군을 선택해주세요</span>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 tracking-wider">
+                  <span className="metallic-text">당신의 직무를 선택해주세요</span>
                 </h1>
-                <p className="text-gray-400 text-lg">
+                <p className="text-gray-400 text-sm sm:text-base md:text-lg">
                   선택한 직군에 맞는 커리어 패스를 안내해드립니다
                 </p>
               </div>
