@@ -105,28 +105,28 @@ const handleBack = () => {
         /* 로그인 페이지 */
         <div className="flex items-center justify-center min-h-screen px-4">
           <div className={`max-w-md w-full transform transition-all duration-1000 ${isUnlocking ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}>
-            {/* 로고 섹션 */}
-            <div className="text-center mb-12">
-              <div className={`relative inline-block`} ref={titleRef}>
+{/* 로고 섹션 - 원래대로 */}
+<div className="text-center mb-12">
+  <div className={`relative inline-block mx-auto`} ref={titleRef}>
                 {/* 타이틀 잔상/그림자 레이어들 */}
-                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(-1px, -1px)' }}>
+                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(-1px, -1px)', marginLeft: '-2px'  }}>
+                  <h1 className="text-5xl md:text-6xl font-bold tracking-wider whitespace-nowrap text-center">
+                    <span className="metallic-text">THE FIFTY ONE</span>
+                  </h1>
+                </div>
+                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(1px, 1px)', marginLeft: '-4px'  }}>
                   <h1 className="text-5xl md:text-6xl font-bold tracking-wider whitespace-nowrap">
                     <span className="metallic-text">THE FIFTY ONE</span>
                   </h1>
                 </div>
-                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(1px, 1px)' }}>
-                  <h1 className="text-5xl md:text-6xl font-bold tracking-wider whitespace-nowrap">
-                    <span className="metallic-text">THE FIFTY ONE</span>
-                  </h1>
-                </div>
-                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(0px, -1px)' }}>
+                <div className="absolute inset-0" style={{ opacity: 0.1, transform: 'translate(0px, -1px)', marginLeft: '-6px'  }}>
                   <h1 className="text-5xl md:text-6xl font-bold tracking-wider whitespace-nowrap">
                     <span className="metallic-text">THE FIFTY ONE</span>
                   </h1>
                 </div>
                 
-                {/* 메인 타이틀 */}
-                <h1 className={`text-5xl md:text-6xl font-bold tracking-wider transform transition-all duration-300 relative whitespace-nowrap`} style={{ marginBottom: '0.5rem' }}>
+{/* 메인 타이틀 */}
+                <h1 className={`text-5xl md:text-6xl font-bold tracking-wider transform transition-all duration-300 relative whitespace-nowrap text-center`} style={{ marginBottom: '0.5rem', marginLeft: '-8px' }}>
                   <span className={`metallic-text ${titleGlitch ? '' : ''}`}>
                     THE FIFTY ONE
                   </span>
@@ -267,8 +267,8 @@ const handleBack = () => {
                 </p>
               </div>
 
-              {/* 직군 선택 그리드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+    {/* 직군 선택 그리드 */}
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-6 max-w-full md:max-w-2xl mx-auto px-4 md:px-0">
                 {careers.map((career) => (
                   <button
                     key={career.id}
@@ -277,12 +277,12 @@ const handleBack = () => {
                   >
 <div className="absolute -inset-0.5 metallic-gradient rounded-2xl opacity-0 group-hover:opacity-75 blur-sm transition-all duration-500" />
                     
-                    <div className="relative backdrop-blur-xl bg-black/80 rounded-2xl p-8 border border-gray-700/50 hover:border-gray-500/50 transition-all duration-500 overflow-hidden">
+                    <div className="relative backdrop-blur-xl bg-black/80 rounded-2xl p-4 md:p-8 border border-gray-700/50 hover:border-gray-500/50 transition-all duration-500 overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                       
                       <div className="relative z-10 text-center">
-                        <div className="text-5xl mb-4">{career.icon}</div>
-                        <h3 className="text-xl font-semibold text-gray-200 mb-2">{career.title}</h3>
+                        <div className="text-3xl md:text-5xl mb-2 md:mb-4">{career.icon}</div>
+                        <h3 className="text-sm md:text-xl font-semibold text-gray-200 mb-2">{career.title}</h3>
                         <div className="h-px w-16 mx-auto bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </div>
                       

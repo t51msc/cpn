@@ -409,7 +409,7 @@ const CareerPathViewer = ({
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ==================== 상태 관리 ====================
+// ==================== 상태 관리 ====================
   
   // 기본 상태
   const [nodes, setNodes] = useState(initialNodes);
@@ -428,8 +428,8 @@ const CareerPathViewer = ({
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   
   // 새로운 기능을 위한 상태
-  const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [containerWidth, setContainerWidth] = useState(1000);
   const [isPanning, setIsPanning] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
@@ -458,7 +458,6 @@ const CareerPathViewer = ({
   
   // ==================== Refs ====================
   
-  const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const minimapRef = useRef(null);
   const panStartRef = useRef(null);
@@ -492,29 +491,6 @@ const CareerPathViewer = ({
     }
   }, [history, historyIndex]);
   
-  // ==================== 줌/팬 관련 함수 ====================
-  
-  const handleWheel = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom + delta));
-      
-      // 마우스 위치를 중심으로 줌
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      const scaleChange = newZoom / zoom;
-      const newPan = {
-        x: x - scaleChange * (x - pan.x),
-        y: y - scaleChange * (y - pan.y)
-      };
-      
-      setZoom(newZoom);
-      setPan(newPan);
-    }
-  }, [zoom, pan]);
   
   const handlePanStart = useCallback((e) => {
     if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
@@ -541,8 +517,7 @@ const CareerPathViewer = ({
     panStartRef.current = null;
   }, []);
   
-  const resetView = useCallback(() => {
-    setZoom(1);
+const resetView = useCallback(() => {
     setPan({ x: 0, y: 0 });
   }, []);
   
@@ -563,35 +538,22 @@ const CareerPathViewer = ({
     }
   }, []);
   
-  const handleTouchMove = useCallback((e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const distance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      
-      if (touchStartDistance > 0) {
-        const scale = distance / touchStartDistance;
-        const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * scale));
-        setZoom(newZoom);
-        setTouchStartDistance(distance);
-      }
-    } else if (e.touches.length === 1 && lastTouchRef.current) {
-      const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
-      const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
-      
-      setPan(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
-      
-      lastTouchRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      };
-    }
-  }, [zoom, touchStartDistance]);
+const handleTouchMove = useCallback((e) => {
+  if (e.touches.length === 1 && lastTouchRef.current) {
+    const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
+    const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
+    
+    setPan(prev => ({
+      x: prev.x + deltaX,
+      y: prev.y + deltaY
+    }));
+    
+    lastTouchRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  }
+}, []);
   
   // ==================== 그리드 스냅 함수 ====================
   
@@ -970,52 +932,49 @@ return !checkCycle(toId, fromId);
   
   // ==================== 검색 결과로 이동 ====================
   
-  const scrollToNode = useCallback((nodeId) => {
-    const node = nodes[nodeId];
-    if (!node || !containerRef.current) return;
+const scrollToNode = useCallback((nodeId) => {
+  const node = nodes[nodeId];
+  if (!node || !containerRef.current) return;
+  
+  const levelHeight = 200;
+  const yPosition = 150 + node.level * levelHeight;
+  const xPosition = (node.x / 100) * containerRef.current.clientWidth;
+  
+  setPan({
+    x: containerRef.current.clientWidth / 2 - xPosition,
+    y: containerRef.current.clientHeight / 2 - yPosition
+  });
+  
+  setSelectedNode(nodeId);
+  setHoveredNode(nodeId);
+  
+  setTimeout(() => setHoveredNode(null), 2000);
+}, [nodes]);
+  
+  // ==================== 성능 최적화: 뷰포트 내 노드만 렌더링 ====================
     
-    // 노드 위치로 팬 이동
+const visibleNodes = useMemo(() => {
+  if (!containerRef.current) return Object.values(nodes);
+  
+  const viewport = {
+    left: -pan.x,
+    right: containerRef.current.clientWidth - pan.x,
+    top: -pan.y,
+    bottom: containerRef.current.clientHeight - pan.y
+  };
+  
+  return Object.values(nodes).filter(node => {
     const levelHeight = 200;
     const yPosition = 150 + node.level * levelHeight;
     const xPosition = (node.x / 100) * containerRef.current.clientWidth;
     
-    setPan({
-      x: containerRef.current.clientWidth / 2 - xPosition * zoom,
-      y: containerRef.current.clientHeight / 2 - yPosition * zoom
-    });
-    
-    setSelectedNode(nodeId);
-    setHoveredNode(nodeId);
-    
-    // 잠시 후 하이라이트 제거
-    setTimeout(() => setHoveredNode(null), 2000);
-  }, [nodes, zoom]);
-  
-  // ==================== 성능 최적화: 뷰포트 내 노드만 렌더링 ====================
-    
-  const visibleNodes = useMemo(() => {
-    if (!containerRef.current) return Object.values(nodes); // ← 배열로 변환
-    
-    const viewport = {
-      left: -pan.x / zoom,
-      right: (containerRef.current.clientWidth - pan.x) / zoom,
-      top: -pan.y / zoom,
-      bottom: (containerRef.current.clientHeight - pan.y) / zoom
-    };
-    
-    return Object.values(nodes).filter(node => {
-      const levelHeight = 200;
-      const yPosition = 150 + node.level * levelHeight;
-      const xPosition = (node.x / 100) * containerRef.current.clientWidth;
-      
-      // 노드가 뷰포트 내에 있는지 체크 (여유 공간 포함)
-      const margin = 100;
-      return xPosition > viewport.left - margin &&
-            xPosition < viewport.right + margin &&
-            yPosition > viewport.top - margin &&
-            yPosition < viewport.bottom + margin;
-    });
-  }, [nodes, pan, zoom]);
+    const margin = 100;
+    return xPosition > viewport.left - margin &&
+          xPosition < viewport.right + margin &&
+          yPosition > viewport.top - margin &&
+          yPosition < viewport.bottom + margin;
+  });
+}, [nodes, pan]);
   
   // ==================== 로컬스토리지 관리 ====================
   
@@ -1055,6 +1014,48 @@ return !checkCycle(toId, fromId);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+// ==================== 컨테이너 크기 변화 감지 ====================
+
+useEffect(() => {
+  if (!containerRef.current) return;
+  
+  const updateWidth = () => {
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.clientWidth);
+    }
+  };
+  
+  // 초기 너비 설정
+  updateWidth();
+  
+  // ResizeObserver로 크기 변화 감지
+  const resizeObserver = new ResizeObserver(updateWidth);
+  resizeObserver.observe(containerRef.current);
+  
+  // window resize 이벤트도 감지 (브라우저 줌 포함)
+  window.addEventListener('resize', updateWidth);
+  
+  return () => {
+    resizeObserver.disconnect();
+    window.removeEventListener('resize', updateWidth);
+  };
+}, []);
+
+  // 모바일 초기 뷰포트 설정 추가
+useEffect(() => {
+  if (isMobile && containerRef.current) {
+    // 모바일에서 전체 노드가 보이도록 초기 위치 조정
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 컨테이너 중앙 정렬
+    setPan({
+      x: 0,
+      y: -100 // 상단 여백 조정
+    });
+  }
+}, [isMobile]);
+
     // ==================== 부모 노드 찾기 함수 ====================
   const findAllParentNodes = useCallback((nodeId, visited = new Set()) => {
     if (visited.has(nodeId)) return [];
@@ -1072,239 +1073,9 @@ return !checkCycle(toId, fromId);
   }, [nodes]);
   
   
-  // ==================== 캔버스 그리기 ====================
+// ==================== 캔버스 그리기 ====================
   
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !containerRef.current) return;
-    
-    const ctx = canvas.getContext('2d');
-    const rect = containerRef.current.getBoundingClientRect();
-    
-    // 고해상도 디스플레이 대응
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    ctx.scale(dpr, dpr);
-    
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    
-    // 변환 적용
-    ctx.save();
-    ctx.translate(pan.x, pan.y);
-    ctx.scale(zoom, zoom);
-    
-    // 그리드 그리기
-    if (showGrid) {
-      ctx.strokeStyle = highContrastMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(156, 163, 175, 0.1)';
-      ctx.lineWidth = 0.5;
-      
-      const gridSize = GRID_SIZE;
-      const startX = Math.floor(-pan.x / zoom / gridSize) * gridSize;
-      const endX = Math.ceil((rect.width - pan.x) / zoom / gridSize) * gridSize;
-      const startY = Math.floor(-pan.y / zoom / gridSize) * gridSize;
-      const endY = Math.ceil((rect.height - pan.y) / zoom / gridSize) * gridSize;
-      
-      for (let x = startX; x <= endX; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.stroke();
-      }
-      
-      for (let y = startY; y <= endY; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-        ctx.stroke();
-      }
-    }
-    
-    const cardHeight = 80;
-    const levelHeight = 200;
-    
-// 연결선 그리기 - 레이어 분리 방식
-// 일반 연결선용 오프스크린 캔버스
-const lineCanvas = document.createElement('canvas');
-lineCanvas.width = rect.width;
-lineCanvas.height = rect.height;
-const lineCtx = lineCanvas.getContext('2d');
 
-// 오프스크린 캔버스에 변환 적용
-lineCtx.save();
-lineCtx.translate(pan.x, pan.y);
-lineCtx.scale(zoom, zoom);
-
-// 1단계: 모든 일반 연결선만 오프스크린에 그리기
-Object.values(nodes).forEach(node => {
-  node.parents?.forEach(parentId => {
-    const parent = nodes[parentId];
-    if (parent) {
-      const startX = (parent.x / 100) * rect.width;
-      const startY = 150 + parent.level * levelHeight + cardHeight / 2;
-      const endX = (node.x / 100) * rect.width;
-      const endY = 150 + node.level * levelHeight + cardHeight / 2;
-      
-      // 선택된 경로인지 확인
-      const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
-      
-      // 호버된 노드와 연결된 경로인지 확인
-      let isConnectedToHovered = false;
-      if (hoveredNode) {
-        const allParents = findAllParentNodes(hoveredNode);
-        const directChildren = Object.values(nodes)
-          .filter(n => n.parents?.includes(hoveredNode))
-          .map(n => n.id);
-        
-        isConnectedToHovered = 
-          (allParents.includes(parentId) && allParents.includes(node.id)) ||
-          (hoveredNode === parentId && directChildren.includes(node.id));
-      }
-      
-      const isTargetPath = viewMode === 'target' && targetNode &&
-                          (isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode));
-      const isSelected = selectedNodes.includes(parentId) && selectedNodes.includes(node.id);
-      
-// 일반 연결선만 그리기
-if (!isInSelectedPath && !isConnectedToHovered && !isTargetPath && !isSelected) {
-  lineCtx.beginPath();
-  lineCtx.moveTo(startX, startY);
-  
-  // 계단식 연결선 유지
-  const midY = startY + (endY - startY) / 2;
-  lineCtx.lineTo(startX, midY);
-  lineCtx.lineTo(endX, midY);
-  lineCtx.lineTo(endX, endY);
-  
-  lineCtx.strokeStyle = highContrastMode 
-    ? '#484848ff'  // 투명도 없는 연한 회색
-    : '#363636ff'; // 투명도 없는 더 연한 회색
-  lineCtx.lineWidth = zoom < 0.5 ? 1 : 1.5;
-  lineCtx.stroke();
-}
-    }
-  });
-});
-
-lineCtx.restore();
-
-// 2단계: 일반 연결선을 메인 캔버스에 한 번에 그리기
-ctx.save();
-ctx.globalAlpha = 0.7; // 전체적으로 투명도 적용
-ctx.drawImage(lineCanvas, 0, 0);
-ctx.restore();
-
-// 3단계: 강조된 연결선은 메인 캔버스에 직접 그리기
-ctx.save();
-ctx.translate(pan.x, pan.y);
-ctx.scale(zoom, zoom);
-
-Object.values(nodes).forEach(node => {
-  node.parents?.forEach(parentId => {
-    const parent = nodes[parentId];
-    if (parent) {
-      const startX = (parent.x / 100) * rect.width;
-      const startY = 150 + parent.level * levelHeight + cardHeight / 2;
-      const endX = (node.x / 100) * rect.width;
-      const endY = 150 + node.level * levelHeight + cardHeight / 2;
-      
-      const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
-      
-      let isConnectedToHovered = false;
-      if (hoveredNode) {
-        const allParents = findAllParentNodes(hoveredNode);
-        const directChildren = Object.values(nodes)
-          .filter(n => n.parents?.includes(hoveredNode))
-          .map(n => n.id);
-        
-        isConnectedToHovered = 
-          (allParents.includes(parentId) && allParents.includes(node.id)) ||
-          (hoveredNode === parentId && directChildren.includes(node.id));
-      }
-      
-      const isTargetPath = viewMode === 'target' && targetNode &&
-                          (isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode));
-      const isSelected = selectedNodes.includes(parentId) && selectedNodes.includes(node.id);
-      
-      // 강조된 연결선만 그리기
-      if (isInSelectedPath || isConnectedToHovered || isTargetPath || isSelected) {
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        
-        // 계단식 연결선 유지
-        const midY = startY + (endY - startY) / 2;
-        ctx.lineTo(startX, midY);
-        ctx.lineTo(endX, midY);
-        ctx.lineTo(endX, endY);
-        
-        if (isInSelectedPath || isTargetPath || isSelected) {
-          ctx.strokeStyle = highContrastMode ? '#FFD700' : '#DAA520';
-          ctx.lineWidth = 3;
-          ctx.shadowColor = '#DAA520';
-          ctx.shadowBlur = 8;
-        } else if (isConnectedToHovered) {
-          ctx.strokeStyle = '#ad9469ff'; // 투명도 없는 어두운 골드색
-          ctx.lineWidth = 2.5;
-          ctx.shadowColor = '#DAA520';
-          ctx.shadowBlur = 0;
-        }
-                
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-        
-        // 화살표 그리기
-        if (zoom > 0.5) {
-          const arrowX = endX;
-          const arrowY = endY - 5;
-          const arrowLength = 8;
-          
-          ctx.beginPath();
-          ctx.moveTo(arrowX - arrowLength * 0.5, arrowY);
-          ctx.lineTo(arrowX, arrowY - arrowLength);
-          ctx.moveTo(arrowX + arrowLength * 0.5, arrowY);
-          ctx.lineTo(arrowX, arrowY - arrowLength);
-          ctx.stroke();
-        }
-      }
-    }
-  });
-});
-
-ctx.restore();
-    // 연결 모드 임시선
-    if (connectionMode && connectionStart && hoveredNode && hoveredNode !== connectionStart) {
-      const startNode = nodes[connectionStart];
-      const endNode = nodes[hoveredNode];
-      if (startNode && endNode) {
-        const startX = (startNode.x / 100) * rect.width;
-        const startY = 150 + startNode.level * levelHeight + cardHeight / 2;
-        const endX = (endNode.x / 100) * rect.width;
-        const endY = 150 + endNode.level * levelHeight + cardHeight / 2;
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        
-        if (canConnect(connectionStart, hoveredNode)) {
-          ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
-        } else {
-          ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
-        }
-        
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    }
-    
-ctx.restore();
-  }, [nodes, selectedPath, targetNode, viewMode, isAdminMode, connectionMode, 
-      connectionStart, hoveredNode, zoom, pan, showGrid, selectedNodes, 
-      highContrastMode, canConnect, findAllParentNodes]);
-  
   // ==================== 미니맵 그리기 ====================
   
   useEffect(() => {
@@ -1338,16 +1109,16 @@ ctx.restore();
       ctx.fillRect(x - 2, y - 1, 4, 2);
     });
     
-    // 뷰포트
-    ctx.strokeStyle = '#DAA520';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      -pan.x * scale / zoom,
-      -pan.y * scale / zoom,
-      rect.width * scale / zoom,
-      rect.height * scale / zoom
-    );
-  }, [nodes, showMinimap, pan, zoom, selectedNode, selectedNodes]);
+// 뷰포트
+ctx.strokeStyle = '#DAA520';
+ctx.lineWidth = 2;
+ctx.strokeRect(
+  -pan.x * scale,
+  -pan.y * scale,
+  rect.width * scale,
+  rect.height * scale
+);
+  }, [nodes, showMinimap, pan, selectedNode, selectedNodes]);
   
   // ==================== 경로 관련 함수들 ====================
   
@@ -1479,27 +1250,24 @@ if (canConnect(connectionStart, nodeId)) {
     e.dataTransfer.effectAllowed = 'move';
   }, [isAdminMode, selectedNodes]);
   
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    // 드래그 중 가이드라인 표시를 위한 좌표 계산
-    if (snapToGrid && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100;
-      const snappedX = snapToGridValue(x);
-      
-      // 가이드라인 표시 (CSS로 처리하거나 별도 레이어 추가)
-    }
-  }, [snapToGrid, pan, zoom, snapToGridValue]);
+const handleDragOver = useCallback((e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  
+  if (snapToGrid && containerRef.current) {
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left - pan.x) / rect.width * 100;
+    const snappedX = snapToGridValue(x);
+  }
+}, [snapToGrid, pan, snapToGridValue]);
   
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     if (!draggedNode || !containerRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    let x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100;
-    const y = (e.clientY - rect.top - pan.y) / zoom;
+const rect = containerRef.current.getBoundingClientRect();
+let x = (e.clientX - rect.left - pan.x) / rect.width * 100;
+const y = (e.clientY - rect.top - pan.y);
     const level = Math.max(0, Math.min(6, Math.floor((y - 150) / 200)));
     
     // 그리드 스냅
@@ -1540,16 +1308,16 @@ if (canConnect(connectionStart, nodeId)) {
     
     setDraggedNode(null);
     setUnsavedChanges(true);
-  }, [draggedNode, nodes, pan, zoom, snapToGrid, snapToGridValue, addToHistory]);
+  }, [draggedNode, nodes, pan, snapToGrid, snapToGridValue, addToHistory]);
   
   // ==================== 노드 추가 (더블클릭) ====================
   
   const handleCanvasDoubleClick = useCallback((e) => {
     if (!isAdminMode || e.target !== containerRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100;
-    const y = (e.clientY - rect.top - pan.y) / zoom;
+const rect = containerRef.current.getBoundingClientRect();
+const x = (e.clientX - rect.left - pan.x) / rect.width * 100;
+const y = (e.clientY - rect.top - pan.y);
     const level = Math.max(0, Math.min(6, Math.floor((y - 150) / 180)));
     
     const newId = `node_${Date.now()}`;
@@ -1573,7 +1341,7 @@ if (canConnect(connectionStart, nodeId)) {
     setNodes(prev => ({ ...prev, [newId]: newNode }));
     setEditingNode(newId);
     setUnsavedChanges(true);
-  }, [isAdminMode, nodes, pan, zoom, snapToGrid, snapToGridValue, addToHistory]);
+  }, [isAdminMode, nodes, pan, snapToGrid, snapToGridValue, addToHistory]);
   
   // ==================== 노드 템플릿 선택 ====================
   
@@ -1766,28 +1534,30 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
               {/* 구분선 추가 */}
               <div className="h-6 w-px bg-gray-700" />
 
-              {/* 관리자 모드 토글 */}
-              <button
-                onClick={() => {
-                  if (!isAdminMode) {
-                    setShowPasswordModal(true);
-                  } else {
-                    setIsAdminMode(false);
-                    setConnectionMode(false);
-                    setConnectionStart(null);
-                    setSelectedNode(null);
-                    setSelectedNodes([]);
-                  }
-                }}
-                className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all ${
-                  isAdminMode 
-                    ? 'bg-gray-700 text-white' 
-                    : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
-                }`}
-              >
-                {isAdminMode ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                <span>{isAdminMode ? '관리자 모드' : '관리자 모드'}</span>
-              </button>
+{/* 관리자 모드 토글 - 데스크톱에서만 표시 */}
+              {!isMobile && (
+                <button
+                  onClick={() => {
+                    if (!isAdminMode) {
+                      setShowPasswordModal(true);
+                    } else {
+                      setIsAdminMode(false);
+                      setConnectionMode(false);
+                      setConnectionStart(null);
+                      setSelectedNode(null);
+                      setSelectedNodes([]);
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all ${
+                    isAdminMode 
+                      ? 'bg-gray-700 text-white' 
+                      : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
+                  }`}
+                >
+                  {isAdminMode ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  <span>{isAdminMode ? '관리자 모드' : '관리자 모드'}</span>
+                </button>
+              )}
 
               {!isAdminMode && (
                 <>
@@ -1851,33 +1621,7 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                 <span className="text-sm hidden sm:inline">검색</span>
               </button>
 
-              {/* 줌 컨트롤 */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setZoom(Math.max(MIN_ZOOM, zoom - ZOOM_STEP))}
-                  className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
-                  title="축소"
-                >
-                  <ZoomOut className="w-4 h-4" />
-                </button>
-                <span className="text-sm text-gray-400 w-12 text-center">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  onClick={() => setZoom(Math.min(MAX_ZOOM, zoom + ZOOM_STEP))}
-                  className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
-                  title="확대"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={resetView}
-                  className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
-                  title="뷰 초기화"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-              </div>
+
 
               {/* 초기화 */}
               <button
@@ -2166,7 +1910,6 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
         onMouseMove={handlePanMove}
         onMouseUp={handlePanEnd}
         onMouseLeave={handlePanEnd}
-        onWheel={handleWheel}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onDoubleClick={handleCanvasDoubleClick}
@@ -2174,16 +1917,190 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
       >
-        <canvas 
-          ref={canvasRef} 
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ imageRendering: 'crisp-edges' }}
+{/* 연결선 SVG */}
+<svg 
+  className="absolute inset-0 w-full h-full pointer-events-none"
+  style={{ overflow: 'visible' }}
+>
+  <g transform={`translate(${pan.x}, ${pan.y})`}>
+    {/* 그리드 (옵션) */}
+    {showGrid && (
+      <>
+        {Array.from({ length: 40 }, (_, i) => (
+          <line
+            key={`v-${i}`}
+            x1={i * 50}
+            y1={0}
+            x2={i * 50}
+            y2={2000}
+            stroke={highContrastMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(156, 163, 175, 0.1)'}
+            strokeWidth="0.5"
+          />
+        ))}
+        {Array.from({ length: 20 }, (_, i) => (
+          <line
+            key={`h-${i}`}
+            x1={0}
+            y1={i * 50}
+            x2={2000}
+            y2={i * 50}
+            stroke={highContrastMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(156, 163, 175, 0.1)'}
+            strokeWidth="0.5"
+          />
+        ))}
+      </>
+    )}
+    
+    {/* 레이어 1: 일반 연결선 (강조되지 않은 선들) */}
+    <g id="normal-connections">
+      {Object.values(nodes).map(node => 
+        node.parents?.map(parentId => {
+          const parent = nodes[parentId];
+          if (!parent) return null;
+          
+          const levelHeight = 200;
+          const cardHeight = 80;
+          
+          const startX = (parent.x / 100) * containerWidth;
+          const startY = 150 + parent.level * levelHeight + cardHeight / 2;
+          const endX = (node.x / 100) * containerWidth;
+          const endY = 150 + node.level * levelHeight + cardHeight / 2;
+          const midY = startY + (endY - startY) / 2;
+          
+          // 강조 상태 체크
+          const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
+          
+          let isConnectedToHovered = false;
+          if (hoveredNode) {
+            const allParents = findAllParentNodes(hoveredNode);
+            const directChildren = Object.values(nodes)
+              .filter(n => n.parents?.includes(hoveredNode))
+              .map(n => n.id);
+            
+            isConnectedToHovered = 
+              (allParents.includes(parentId) && allParents.includes(node.id)) ||
+              (hoveredNode === parentId && directChildren.includes(node.id));
+          }
+          
+          const isTargetPath = viewMode === 'target' && targetNode &&
+                              (isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode));
+          const isSelected = selectedNodes.includes(parentId) && selectedNodes.includes(node.id);
+          
+          // 강조된 선은 이 레이어에서 그리지 않음
+          if (isInSelectedPath || isConnectedToHovered || isTargetPath || isSelected) {
+            return null;
+          }
+          
+          return (
+            <path
+              key={`${parentId}-${node.id}`}
+              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+              stroke={highContrastMode ? '#484848' : '#363636'}
+              strokeWidth={1.5}
+              fill="none"
+              opacity={0.7}
+            />
+          );
+        })
+      )}
+    </g>
+    
+    {/* 레이어 2: 강조된 연결선 (호버, 선택 등) */}
+    <g id="highlighted-connections">
+      {Object.values(nodes).map(node => 
+        node.parents?.map(parentId => {
+          const parent = nodes[parentId];
+          if (!parent) return null;
+          
+          const levelHeight = 200;
+          const cardHeight = 80;
+          
+          const startX = (parent.x / 100) * containerWidth;
+          const startY = 150 + parent.level * levelHeight + cardHeight / 2;
+          const endX = (node.x / 100) * containerWidth;
+          const endY = 150 + node.level * levelHeight + cardHeight / 2;
+          const midY = startY + (endY - startY) / 2;
+          
+          // 강조 상태 체크
+          const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
+          
+          let isConnectedToHovered = false;
+          if (hoveredNode) {
+            const allParents = findAllParentNodes(hoveredNode);
+            const directChildren = Object.values(nodes)
+              .filter(n => n.parents?.includes(hoveredNode))
+              .map(n => n.id);
+            
+            isConnectedToHovered = 
+              (allParents.includes(parentId) && allParents.includes(node.id)) ||
+              (hoveredNode === parentId && directChildren.includes(node.id));
+          }
+          
+          const isTargetPath = viewMode === 'target' && targetNode &&
+                              (isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode));
+          const isSelected = selectedNodes.includes(parentId) && selectedNodes.includes(node.id);
+          
+          // 강조된 선만 이 레이어에서 그림
+          if (!isInSelectedPath && !isConnectedToHovered && !isTargetPath && !isSelected) {
+            return null;
+          }
+          
+          let strokeColor = '#DAA520';
+          let strokeWidth = 3;
+          
+          if (isConnectedToHovered && !isInSelectedPath && !isTargetPath && !isSelected) {
+            strokeColor = '#ad9469';
+            strokeWidth = 2.5;
+          }
+          
+          return (
+            <path
+              key={`${parentId}-${node.id}-highlight`}
+              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fill="none"
+              opacity={1}
+              style={{
+                filter: (isInSelectedPath || isTargetPath || isSelected) ? 'drop-shadow(0 0 8px #DAA520)' : 'none'
+              }}
+            />
+          );
+        })
+      )}
+    </g>
+    
+    {/* 연결 모드 임시선 */}
+    {connectionMode && connectionStart && hoveredNode && hoveredNode !== connectionStart && (() => {
+      const startNode = nodes[connectionStart];
+      const endNode = nodes[hoveredNode];
+      if (!startNode || !endNode) return null;
+      
+      const levelHeight = 200;
+      const cardHeight = 80;
+      
+      const startX = (startNode.x / 100) * containerWidth;
+      const startY = 150 + startNode.level * levelHeight + cardHeight / 2;
+      const endX = (endNode.x / 100) * containerWidth;
+      const endY = 150 + endNode.level * levelHeight + cardHeight / 2;
+      
+      return (
+        <path
+          d={`M ${startX} ${startY} L ${endX} ${endY}`}
+          stroke={canConnect(connectionStart, hoveredNode) ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'}
+          strokeWidth="2"
+          strokeDasharray="8 4"
+          fill="none"
         />
+      );
+    })()}
+  </g>
+</svg>
 
         {/* 변환 컨테이너 */}
-        <div
+      <div
           style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transform: `translate(${pan.x}px, ${pan.y}px)`,
             transformOrigin: '0 0',
             position: 'absolute',
             top: 0,
@@ -2243,9 +2160,10 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                   const parent = nodes[parentId];
                   if (!parent) return null;
                   
-                  const startX = (parent.x / 100) * (containerRef.current?.clientWidth || 1000);
-                  const startY = 150 + parent.level * 200 + 40;
-                  const endX = (node.x / 100) * (containerRef.current?.clientWidth || 1000);
+const actualWidth = containerWidth;
+const startX = (parent.x / 100) * actualWidth;
+const startY = 150 + parent.level * 200 + 40;
+const endX = (node.x / 100) * actualWidth;
                   const endY = 150 + node.level * 200 + 40;
                   const midY = startY + (endY - startY) / 2;
                   
@@ -2515,16 +2433,16 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
             <canvas 
               ref={minimapRef}
               className="w-full h-full cursor-pointer"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
-                
-                setPan({
-                  x: -x * containerRef.current.clientWidth * zoom + containerRef.current.clientWidth / 2,
-                  y: -y * 1200 * zoom + containerRef.current.clientHeight / 2
-                });
-              }}
+onClick={(e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  
+  setPan({
+    x: -x * containerRef.current.clientWidth + containerRef.current.clientWidth / 2,
+    y: -y * 1200 + containerRef.current.clientHeight / 2
+  });
+}}
             />
           </div>
         )}
@@ -2586,9 +2504,9 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
               <>
                 <button
                   onClick={() => {
-                    const rect = containerRef.current.getBoundingClientRect();
-                    const x = ((contextMenuPos.x - rect.left - pan.x) / zoom) / rect.width * 100;
-                    const y = (contextMenuPos.y - rect.top - pan.y) / zoom;
+const rect = containerRef.current.getBoundingClientRect();
+const x = (contextMenuPos.x - rect.left - pan.x) / rect.width * 100;
+const y = (contextMenuPos.y - rect.top - pan.y);
                     const level = Math.max(0, Math.min(6, Math.floor((y - 150) / 180)));
                     
                     const newId = `node_${Date.now()}`;
