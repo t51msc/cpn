@@ -413,11 +413,10 @@ const CareerPathViewer = ({
   
   // 기본 상태
   const [nodes, setNodes] = useState(initialNodes);
-  const [selectedPath, setSelectedPath] = useState([]);
   const [targetNode, setTargetNode] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [filterType, setFilterType] = useState('all');
-  const [viewMode, setViewMode] = useState('explore');
+  const [viewMode, setViewMode] = useState('target');
   const [isAdminMode, setIsAdminMode] = useState(location.state?.isAdminMode || false);
   const [selectedNode, setSelectedNode] = useState(null);
   const [editingNode, setEditingNode] = useState(null);
@@ -426,6 +425,7 @@ const CareerPathViewer = ({
   const [draggedNode, setDraggedNode] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [mobilePopupNode, setMobilePopupNode] = useState(null);
   
   // 새로운 기능을 위한 상태
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -943,8 +943,8 @@ const scrollToNode = useCallback((nodeId) => {
   const node = nodes[nodeId];
   if (!node || !containerRef.current) return;
   
-  const levelHeight = 200;
-  const yPosition = 150 + node.level * levelHeight;
+  const levelHeight = 200 * scale;
+  const yPosition = 60 * scale + node.level * levelHeight;
   const xPosition = (node.x / 100) * containerRef.current.clientWidth;
   
   setPan({
@@ -971,8 +971,8 @@ const visibleNodes = useMemo(() => {
   };
   
   return Object.values(nodes).filter(node => {
-    const levelHeight = 200;
-    const yPosition = 150 + node.level * levelHeight;
+    const levelHeight = 200 * scale;
+    const yPosition = 60 * scale + node.level * levelHeight;
     const xPosition = (node.x / 100) * containerRef.current.clientWidth;
     
     const margin = 100;
@@ -1021,25 +1021,49 @@ useEffect(() => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-// 반응형 스케일 계산 - 연속적인 스케일링
+
+
+  // 모바일 팝업 외부 클릭 감지 - 여기에 추가!
   useEffect(() => {
-    const calculateScale = () => {
-      const width = window.innerWidth;
-      setViewportWidth(width);
+    if (!isMobile || !mobilePopupNode) return;
+    
+    const handleOutsideClick = (e) => {
+      // 팝업과 노드 자체를 클릭한 경우는 제외
+      const clickedOnNode = e.target.closest(`#node-${mobilePopupNode}`);
+      const clickedOnPopup = e.target.closest('.mobile-popup');
       
-      // 연속적인 스케일 계산 (320px ~ 1920px)
-      let calculatedScale;
-      if (width <= 320) {
-        calculatedScale = 0.4;
-      } else if (width >= 1920) {
-        calculatedScale = 1.0;
-      } else {
-        // 320px에서 0.4, 1920px에서 1.0으로 선형 보간
-        calculatedScale = 0.4 + ((width - 320) / (1920 - 320)) * 0.6;
+      if (!clickedOnNode && !clickedOnPopup) {
+        setMobilePopupNode(null);
       }
-      
-      setScale(calculatedScale);
     };
+    
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 100);
+    
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [isMobile, mobilePopupNode]);
+
+
+// 반응형 스케일 계산 - 제곱근 함수로 완만한 변화
+useEffect(() => {
+  const calculateScale = () => {
+    const width = window.innerWidth;
+    setViewportWidth(width);
+    
+    // 제곱근 함수를 사용한 완만한 스케일 계산
+    let calculatedScale;
+    if (width <= 320) {
+      calculatedScale = 0.05;
+    } else if (width >= 1920) {
+      calculatedScale = 1.0;
+    } else {
+      // 제곱근 함수로 더 자연스러운 축소 비율
+      calculatedScale = 0.05 + Math.sqrt((width - 320) / (1920 - 320)) * 0.95;
+    }
+    
+    setScale(calculatedScale);
+  };
     
     calculateScale();
     window.addEventListener('resize', calculateScale);
@@ -1084,7 +1108,13 @@ useEffect(() => {
     // 컨테이너 중앙 정렬
     setPan({
       x: 0,
-      y: -100 // 상단 여백 조정
+      y: 50 // 상단 여백 조정
+    });
+  } else if (!isMobile) {
+    // 데스크톱으로 돌아올 때 리셋
+    setPan({
+      x: 0,
+      y: 0  // 또는 원하는 데스크톱 기본값
     });
   }
 }, [isMobile]);
@@ -1193,81 +1223,108 @@ const isPathToTarget = useCallback((nodeId, targetId) => {
     // 관리자 모드에서는 모든 노드 표시
     if (isAdminMode) return true;
     
-    // 선택된 경로에 있는 노드는 항상 표시
-    if (selectedPath.includes(node.id)) return true;
-    
     // 목표 경로에 있는 노드는 항상 표시
-    if (viewMode === 'target' && targetNode && isPathToTarget(node.id, targetNode)) return true;
+    if (targetNode && isPathToTarget(node.id, targetNode)) return true;
     
     return false;
-  }, [filterType, isAdminMode, selectedPath, viewMode, targetNode, isPathToTarget]);
+  }, [filterType, isAdminMode, targetNode, isPathToTarget]);
 
 
   // ==================== 노드 클릭 핸들러 ====================
   
-  const handleNodeClick = useCallback((nodeId, e) => {
-    if (isAdminMode && connectionMode) {
-      if (!connectionStart) {
-        setConnectionStart(nodeId);
-      } else if (connectionStart !== nodeId) {
-if (canConnect(connectionStart, nodeId)) {
-  addToHistory(nodes);
-  const newNodes = { ...nodes };
-  
-  // 노드 존재 확인 추가
-  if (!newNodes[connectionStart] || !newNodes[nodeId]) {
-    alert('노드를 찾을 수 없습니다.');
-    setConnectionStart(null);
+const handleNodeClick = useCallback((nodeId, e) => {
+  // 모바일에서 팝업 토글 처리 추가
+  if (isMobile && !isAdminMode) {
+    e.stopPropagation();
+    setMobilePopupNode(nodeId === mobilePopupNode ? null : nodeId);
     return;
   }
   
-  if (!newNodes[connectionStart].children) {
-    newNodes[connectionStart].children = [];
-  }
-  if (!newNodes[nodeId].parents) {
-    newNodes[nodeId].parents = [];
-  }
-  
-  // 중복 연결 방지
-  if (!newNodes[connectionStart].children.includes(nodeId)) {
-    newNodes[connectionStart].children.push(nodeId);
-  }
-  if (!newNodes[nodeId].parents.includes(connectionStart)) {
-    newNodes[nodeId].parents.push(connectionStart);
-  }
-          
-          setNodes(newNodes);
-          setUnsavedChanges(true);
-        } else {
-          alert('이 연결은 허용되지 않습니다. (레벨 제약 또는 순환 참조)');
+  if (isAdminMode && connectionMode) {
+    if (!connectionStart) {
+      setConnectionStart(nodeId);
+    } else if (connectionStart !== nodeId) {
+      if (canConnect(connectionStart, nodeId)) {
+        addToHistory(nodes);
+        const newNodes = { ...nodes };
+        
+        // 노드 존재 확인 추가
+        if (!newNodes[connectionStart] || !newNodes[nodeId]) {
+          alert('노드를 찾을 수 없습니다.');
+          setConnectionStart(null);
+          return;
         }
         
-        setConnectionMode(false);
-        setConnectionStart(null);
+        if (!newNodes[connectionStart].children) {
+          newNodes[connectionStart].children = [];
+        }
+        if (!newNodes[nodeId].parents) {
+          newNodes[nodeId].parents = [];
+        }
+        
+        // 중복 연결 방지
+        if (!newNodes[connectionStart].children.includes(nodeId)) {
+          newNodes[connectionStart].children.push(nodeId);
+        }
+        if (!newNodes[nodeId].parents.includes(connectionStart)) {
+          newNodes[nodeId].parents.push(connectionStart);
+        }
+        
+        setNodes(newNodes);
+        setUnsavedChanges(true);
+      } else {
+        alert('이 연결은 허용되지 않습니다. (레벨 제약 또는 순환 참조)');
       }
-    } else if (isAdminMode) {
-      handleNodeSelection(nodeId, e);
-    } else if (viewMode === 'explore') {
-      const node = nodes[nodeId];
-      const lastNode = selectedPath[selectedPath.length - 1];
       
-      if (selectedPath.includes(nodeId)) {
-        const index = selectedPath.indexOf(nodeId);
-        setSelectedPath(selectedPath.slice(0, index + 1));
-        return;
-      }
-      
-      if (selectedPath.length === 0 && node.parents.length === 0) {
-        setSelectedPath([nodeId]);
-      } else if (lastNode && nodes[lastNode].children?.includes(nodeId)) {
-        setSelectedPath([...selectedPath, nodeId]);
-      }
-    } else if (viewMode === 'target') {
-      setTargetNode(nodeId);
+      setConnectionMode(false);
+      setConnectionStart(null);
     }
-  }, [isAdminMode, connectionMode, connectionStart, nodes, viewMode, 
-      selectedPath, handleNodeSelection, canConnect, addToHistory]);
-  
+    if (!connectionStart) {
+      setConnectionStart(nodeId);
+    } else if (connectionStart !== nodeId) {
+      if (canConnect(connectionStart, nodeId)) {
+        addToHistory(nodes);
+        const newNodes = { ...nodes };
+        
+        // 노드 존재 확인 추가
+        if (!newNodes[connectionStart] || !newNodes[nodeId]) {
+          alert('노드를 찾을 수 없습니다.');
+          setConnectionStart(null);
+          return;
+        }
+        
+        if (!newNodes[connectionStart].children) {
+          newNodes[connectionStart].children = [];
+        }
+        if (!newNodes[nodeId].parents) {
+          newNodes[nodeId].parents = [];
+        }
+        
+        // 중복 연결 방지
+        if (!newNodes[connectionStart].children.includes(nodeId)) {
+          newNodes[connectionStart].children.push(nodeId);
+        }
+        if (!newNodes[nodeId].parents.includes(connectionStart)) {
+          newNodes[nodeId].parents.push(connectionStart);
+        }
+        
+        setNodes(newNodes);
+        setUnsavedChanges(true);
+      } else {
+        alert('이 연결은 허용되지 않습니다. (레벨 제약 또는 순환 참조)');
+      }
+      
+      setConnectionMode(false);
+      setConnectionStart(null);
+    }
+  } else if (isAdminMode) {
+    handleNodeSelection(nodeId, e);
+  } else {
+    // 일반 모드에서는 항상 목표 설정
+    setTargetNode(nodeId);
+  }
+}, [isAdminMode, connectionMode, connectionStart, nodes, 
+    handleNodeSelection, canConnect, addToHistory, isMobile, mobilePopupNode]);  
   // ==================== 드래그 앤 드롭 ====================
   
   const handleDragStart = useCallback((e, nodeId) => {
@@ -1439,7 +1496,7 @@ import CareerPathViewer from '../common/CareerPathViewer';
 const ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path = () => {
   const ${nodeVarName} = ${JSON.stringify(nodes, null, 4).replace(/"([^"]+)":/g, '$1:')};
 
-  const renderBottomPanel = ({ viewMode, selectedPath, targetNode, nodes }) => {
+  const renderBottomPanel = ({ viewMode, targetNode, nodes }) => {
     const getNodeInfo = (nodeId) => {
       const node = nodes[nodeId];
       return node ? \`\${node.title} (\${node.year})\` : '';
@@ -1448,12 +1505,7 @@ const ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path = () => {
     return (
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-xl border-t border-gray-700/50">
         <div className="max-w-7xl mx-auto">
-          {viewMode === 'explore' && selectedPath.length > 0 && (
-            <div className="text-sm text-gray-300">
-              <span className="text-gray-500">선택된 경로:</span> {selectedPath.map(getNodeInfo).join(' → ')}
-            </div>
-          )}
-          {viewMode === 'target' && targetNode && (
+          {targetNode && (
             <div className="text-sm text-gray-300">
               <span className="text-gray-500">목표:</span> {getNodeInfo(targetNode)}
             </div>
@@ -1466,7 +1518,7 @@ const ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="hidden sm:block px-4 sm:px-6 pt-4 sm:pt-6">
   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
     <span className="metallic-text">${getCareerTitle(careerType)} 커리어패스</span>
   </h1>
@@ -1550,166 +1602,146 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
   
   return (
     <>
-{/* 상단 컨트롤 패널 */}
-      <div className="relative z-10 px-6 pb-4">
-        <div className="backdrop-blur-xl bg-black/90 rounded-xl border border-gray-700/50 p-4">
-          <div className={`flex items-center justify-between ${
-            viewportWidth <= 768 ? 'flex-col space-y-3' : 'flex-row flex-wrap gap-4'
-          }`}>
-    <div className={`flex items-center ${
-      viewportWidth <= 768 ? 'w-full justify-between' : 'space-x-4 flex-wrap'
+{/* 모바일 뒤로가기 버튼 - 상단바 밖에 독립적으로 배치 */}
+{isMobile && (
+  <button
+    onClick={() => navigate('/')}
+    className="absolute top-4 left-4 z-20 p-2 bg-gray-800/80 backdrop-blur hover:bg-gray-700/80 rounded-full transition-colors"
+    style={{ 
+      width: `${50 * scale}px`, 
+      height: `${50 * scale}px`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    <ArrowLeft style={{ width: `${25 * scale}px`, height: `${25 * scale}px` }} />
+  </button>
+)}
+
+{/* 상단 컨트롤 패널 - 모바일에서는 숨김 */}
+{!isMobile && (
+<div className="relative z-10 px-6 pb-4">
+  <div className="backdrop-blur-xl bg-black/90 rounded-xl border border-gray-700/50 p-4">
+    <div className={`flex items-center justify-between ${
+      viewportWidth <= 768 ? 'flex-col gap-3' : 'flex-row flex-wrap gap-4'
     }`}>
-              {/* 직무 선택 돌아가기 버튼 추가 */}
-              <button
-                onClick={() => navigate('/')}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {viewportWidth > 480 && <span className="text-sm">직무 선택</span>}
-              </button>
+      <div className={`flex items-center ${
+        viewportWidth <= 768 ? 'w-full justify-evenly gap-2' : 'space-x-4 flex-wrap'
+      }`}>
+        {/* 직무 선택 돌아가기 버튼 - 데스크탑용 */}
+        <button
+          onClick={() => navigate('/')}
+          className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">직무 선택</span>
+        </button>
 
-              {/* 구분선 추가 */}
-              <div className="h-6 w-px bg-gray-700" />
+        {/* 구분선 추가 */}
+        <div className="h-6 w-px bg-gray-700" />
 
-{/* 관리자 모드 토글 - 데스크톱에서만 표시 */}
-              {!isMobile && (
-                <button
-                  onClick={() => {
-                    if (!isAdminMode) {
-                      setShowPasswordModal(true);
-                    } else {
-                      setIsAdminMode(false);
-                      setConnectionMode(false);
-                      setConnectionStart(null);
-                      setSelectedNode(null);
-                      setSelectedNodes([]);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all ${
-                    isAdminMode 
-                      ? 'bg-gray-700 text-white' 
-                      : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
-                  }`}
-                >
-                  {isAdminMode ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                  <span>{isAdminMode ? '관리자 모드' : '관리자 모드'}</span>
-                </button>
-              )}
-
-                  {!isAdminMode && (
-                <>
-                  {/* 뷰 모드 선택 - 데스크톱 */}
-                  {viewportWidth > 768 && (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setViewMode('explore');
-                          setTargetNode(null);
-                        }}
-                        className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                          viewMode === 'explore' 
-                            ? 'bg-gray-700 text-white' 
-                            : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
-                        }`}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                        <span className="text-sm">경로 탐색</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setViewMode('target');
-                          setSelectedPath([]);
-                        }}
-                        className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                          viewMode === 'target' 
-                            ? 'bg-gray-700 text-white' 
-                            : 'bg-gray-800 hover:bg-gray-700 text-gray-400'
-                        }`}
-                      >
-                        <Target className="w-4 h-4" />
-                        <span className="text-sm">목표 설정</span>
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* 뷰 모드 선택 - 모바일 */}
-                  {viewportWidth <= 768 && (
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => setViewMode('explore')}
-                        className={`px-2 py-1.5 rounded-lg ${
-                          viewMode === 'explore' ? 'bg-gray-700' : 'bg-gray-800'
-                        }`}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setViewMode('target')}
-                        className={`px-2 py-1.5 rounded-lg ${
-                          viewMode === 'target' ? 'bg-gray-700' : 'bg-gray-800'
-                        }`}
-                      >
-                        <Target className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* 필터 - 데스크톱에서만 표시 */}
-              {!isMobile && (
-                <div className="flex items-center space-x-2">
-                  <Filter className="w-4 h-4 text-gray-500" />
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:border-gray-500 focus:outline-none"
-                  >
-                    <option value="all">전체 보기</option>
-                    <option value="construction">구축 프로젝트</option>
-                    <option value="operation">운영 프로젝트</option>
-                    <option value="hybrid">복합형</option>
-                  </select>
-                </div>
-              )}
-
-              {/* 검색 - 데스크톱에서만 표시 */}
-              {!isMobile && (
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
-                  title="Ctrl+F"
-                >
-                  <Search className="w-4 h-4" />
-                  <span className="text-sm hidden sm:inline">검색</span>
-                </button>
-              )}
+        {/* 관리자 모드 토글 - 데스크톱에서만 표시 */}
+        {!isMobile && (
+          <button
+            onClick={() => {
+              if (!isAdminMode) {
+                setShowPasswordModal(true);
+              } else {
+                setIsAdminMode(false);
+                setConnectionMode(false);
+                setConnectionStart(null);
+                setSelectedNode(null);
+                setSelectedNodes([]);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all ${
+              isAdminMode 
+                ? 'bg-gray-700 text-white' 
+                : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
+            }`}
+          >
+            {isAdminMode ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            <span>{isAdminMode ? '관리자 모드' : '관리자 모드'}</span>
+          </button>
+        )}
 
 
 
-              {/* 초기화 */}
-              <button
-                onClick={() => {
-                  if (isAdminMode) {
-                    setSelectedNode(null);
-                    setSelectedNodes([]);
-                    setConnectionMode(false);
-                    setConnectionStart(null);
-                  } else {
-                    setSelectedPath([]);
-                    setTargetNode(null);
-                  }
-                }}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">초기화</span>
-              </button>
+        {/* 필터 - 데스크톱에서만 표시 */}
+        {!isMobile && (
+          <div className="flex items-center space-x-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:border-gray-500 focus:outline-none"
+            >
+              <option value="all">전체 보기</option>
+              <option value="construction">구축 프로젝트</option>
+              <option value="operation">운영 프로젝트</option>
+              <option value="hybrid">복합형</option>
+            </select>
+          </div>
+        )}
 
-              {isAdminMode && (
-                <>
-                  <div className="h-6 w-px bg-gray-700" />
+        {/* 검색 - 데스크톱에서만 표시 */}
+        {!isMobile && (
+          <button
+            onClick={() => setShowSearch(true)}
+            className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
+            title="Ctrl+F"
+          >
+            <Search className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">검색</span>
+          </button>
+        )}
+
+        {/* 초기화 */}
+        <button
+          onClick={() => {
+            if (isAdminMode) {
+              setSelectedNode(null);
+              setSelectedNodes([]);
+              setConnectionMode(false);
+              setConnectionStart(null);
+            } else {
+              setTargetNode(null);
+            }
+          }}
+          className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span className="text-sm hidden sm:inline">초기화</span>
+        </button>
+
+        {/* 모바일 줌 컨트롤 추가 */}
+        {isMobile && !isAdminMode && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                setScale(prev => Math.max(MIN_ZOOM, prev - ZOOM_STEP));
+              }}
+              className="px-2 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setScale(prev => Math.min(MAX_ZOOM, prev + ZOOM_STEP));
+              }}
+              className="px-2 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {isAdminMode && (
+          <>
+            <div className="h-6 w-px bg-gray-700" />
+            
+            {/* 나머지 관리자 모드 버튼들... (기존 코드 유지) */}
                   
                   {/* 노드 추가 */}
                   <button
@@ -1757,7 +1789,6 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                     onClick={() => {
                       setConnectionMode(!connectionMode);
                       setConnectionStart(null);
-                      setViewMode('explore');
                     }}
                     className={`px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
                       connectionMode 
@@ -1864,10 +1895,7 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
               )}
               
               <div className="text-sm text-gray-400">
-                {viewMode === 'explore' && selectedPath.length > 0 && !isAdminMode && (
-                  <span>경로: {selectedPath.length}단계</span>
-                )}
-                {viewMode === 'target' && targetNode && !isAdminMode && (
+                {targetNode && !isAdminMode && (
                   <span>목표: {nodes[targetNode]?.title}</span>
                 )}
                 {isAdminMode && connectionMode && (
@@ -1959,6 +1987,7 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
           )}
         </div>
       </div>
+)}
 
       {/* 메인 캔버스 영역 */}
       <div 
@@ -1968,6 +1997,7 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
           width: '100%',
           height: '1600px',
           minHeight: '600px',
+          paddingTop: isMobile ? '60px' : '0px',  // 모바일에서만 상단 패딩
           cursor: isPanning ? 'grabbing' : 'default',
           touchAction: 'none'
         }}
@@ -2023,17 +2053,17 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
           const parent = nodes[parentId];
           if (!parent) return null;
           
-          const levelHeight = 200;
-          const cardHeight = 80;
-          
-          const startX = (parent.x / 100) * containerWidth;
-          const startY = 150 + parent.level * levelHeight + cardHeight / 2;
-          const endX = (node.x / 100) * containerWidth;
-          const endY = 150 + node.level * levelHeight + cardHeight / 2;
+const levelHeight = 200 * scale;
+const cardHeight = 80 * scale;
+
+const startX = (parent.x / 100) * containerWidth;
+const startY = 60 * scale + parent.level * levelHeight + cardHeight / 2;
+const endX = (node.x / 100) * containerWidth;
+const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           const midY = startY + (endY - startY) / 2;
           
           // 강조 상태 체크
-          const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
+          const isInSelectedPath = false; // 경로 탐색 모드 제거
           
           let isConnectedToHovered = false;
           if (hoveredNode) {
@@ -2070,24 +2100,25 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
       )}
     </g>
     
-    {/* 레이어 2: 강조된 연결선 (호버, 선택 등) */}
+{/* 레이어 2: 강조된 연결선 (호버, 선택 등) */}
     <g id="highlighted-connections">
+      {/* 먼저 호버/선택 연결선 렌더링 */}
       {Object.values(nodes).map(node => 
         node.parents?.map(parentId => {
           const parent = nodes[parentId];
           if (!parent) return null;
           
-          const levelHeight = 200;
-          const cardHeight = 80;
-          
-          const startX = (parent.x / 100) * containerWidth;
-          const startY = 150 + parent.level * levelHeight + cardHeight / 2;
-          const endX = (node.x / 100) * containerWidth;
-          const endY = 150 + node.level * levelHeight + cardHeight / 2;
+const levelHeight = 200 * scale;
+const cardHeight = 80 * scale;
+
+const startX = (parent.x / 100) * containerWidth;
+const startY = 60 * scale + parent.level * levelHeight + cardHeight / 2;
+const endX = (node.x / 100) * containerWidth;
+const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           const midY = startY + (endY - startY) / 2;
           
           // 강조 상태 체크
-          const isInSelectedPath = selectedPath.includes(parentId) && selectedPath.includes(node.id);
+          const isInSelectedPath = false; // 경로 탐색 모드 제거
           
           let isConnectedToHovered = false;
           if (hoveredNode) {
@@ -2105,15 +2136,18 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                               (isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode));
           const isSelected = selectedNodes.includes(parentId) && selectedNodes.includes(node.id);
           
+          // 목표 경로는 나중에 그리기 위해 여기서 제외
+          if (isTargetPath) return null;
+          
           // 강조된 선만 이 레이어에서 그림
-          if (!isInSelectedPath && !isConnectedToHovered && !isTargetPath && !isSelected) {
+          if (!isInSelectedPath && !isConnectedToHovered && !isSelected) {
             return null;
           }
           
           let strokeColor = '#DAA520';
           let strokeWidth = 3;
           
-          if (isConnectedToHovered && !isInSelectedPath && !isTargetPath && !isSelected) {
+          if (isConnectedToHovered && !isInSelectedPath && !isSelected) {
             strokeColor = '#ad9469';
             strokeWidth = 2.5;
           }
@@ -2127,8 +2161,39 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
               fill="none"
               opacity={1}
               style={{
-                filter: (isInSelectedPath || isTargetPath || isSelected) ? 'drop-shadow(0 0 8px #DAA520)' : 'none'
+                filter: (isInSelectedPath || isSelected) ? 'drop-shadow(0 0 8px #DAA520)' : 'none'
               }}
+            />
+          );
+        })
+      )}
+      
+      {/* 목표 경로는 마지막에 렌더링 (최상위) */}
+      {targetNode && Object.values(nodes).map(node => 
+        node.parents?.map(parentId => {
+          const parent = nodes[parentId];
+          if (!parent) return null;
+          
+          const isTargetPath = isPathToTarget(parentId, targetNode) && isPathToTarget(node.id, targetNode);
+          if (!isTargetPath) return null;
+          
+          const levelHeight = 200 * scale;
+          const cardHeight = 80 * scale;
+          
+          const startX = (parent.x / 100) * containerWidth;
+          const startY = 60 * scale + parent.level * levelHeight + cardHeight / 2;
+          const endX = (node.x / 100) * containerWidth;
+          const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
+          const midY = startY + (endY - startY) / 2;
+          
+          return (
+            <path
+              key={`${parentId}-${node.id}-target`}
+              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+              stroke="#e0cf6fff"
+              strokeWidth={3.5}
+              fill="none"
+              opacity={1}
             />
           );
         })
@@ -2195,19 +2260,20 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                 key={level}
                 className="absolute left-0 right-0 border-t-2 border-dashed"
                 style={{ 
-                  top: `${150 + level * 200 - 40}px`,
-                  borderColor: 'rgba(107, 114, 128, 0.15)' // 더 진한 점선
+                  top: `${60 * scale + level * 200 * scale - 40 * scale}px`,
+                  borderColor: 'rgba(107, 114, 128, 0.15)'
                 }}
               >
-                <span className="absolute -top-3 left-4 px-2 bg-black text-xs text-gray-400">
-                  {level === 0 && '입문 (1-3년차)'}
-                  {level === 1 && '체계화 (4-7년차)'}
-                  {level === 2 && '전문화 (8-12년차)'}
-                  {level === 3 && '주도화 (13-18년차)'}
-                  {level === 4 && '차별화 (20년차+)'}
-                  {level === 5 && '전략화 (25년차+)'}
-                  {level === 6 && '최고 경영자'}
-                </span>
+              <span className="absolute -top-3 left-4 px-2 bg-black text-gray-400"
+                    style={{ fontSize: `${12 * scale}px` }}>
+                {level === 0 && '입문 (1-3년차)'}
+                {level === 1 && '체계화 (4-7년차)'}
+                {level === 2 && '전문화 (8-12년차)'}
+                {level === 3 && '주도화 (13-18년차)'}
+                {level === 4 && '차별화 (20년차+)'}
+                {level === 5 && '전략화 (25년차+)'}
+                {level === 6 && '최고 경영자'}
+              </span>
               </div>
             ))}
             
@@ -2225,11 +2291,11 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
                   const parent = nodes[parentId];
                   if (!parent) return null;
                   
-const actualWidth = containerWidth;
-const startX = (parent.x / 100) * actualWidth;
-const startY = 150 + parent.level * 200 + 40;
-const endX = (node.x / 100) * actualWidth;
-                  const endY = 150 + node.level * 200 + 40;
+                  const actualWidth = containerWidth;
+                  const startX = (parent.x / 100) * actualWidth;
+                  const startY = 60 * scale + parent.level * 200 * scale + 40 * scale;
+                  const endX = (node.x / 100) * actualWidth;
+                  const endY = 60 * scale + node.level * 200 * scale + 40 * scale;
                   const midY = startY + (endY - startY) / 2;
                   
                   const connectionKey = `${parentId}-${node.id}`;
@@ -2284,14 +2350,10 @@ const endX = (node.x / 100) * actualWidth;
 
           {/* 노드 렌더링 (성능 최적화: 뷰포트 내 노드만) */}
           {visibleNodes.map(node => {
-            const levelHeight = 200;
-            const yPosition = 150 + node.level * levelHeight;
+            const levelHeight = 200 * scale;
+            const yPosition = 60 * scale + node.level * levelHeight;
             const isVisible = isNodeVisible(node);
-            const isInPath = selectedPath.includes(node.id);
-            const isSelectable = !isAdminMode && viewMode === 'explore' && 
-                               (selectedPath.length === 0 ? node.parents.length === 0 : 
-                                nodes[selectedPath[selectedPath.length - 1]]?.children?.includes(node.id));
-            const isTargetPath = viewMode === 'target' && targetNode && isPathToTarget(node.id, targetNode);
+            const isTargetPath = targetNode && isPathToTarget(node.id, targetNode);
             const isSelected = selectedNode === node.id || selectedNodes.includes(node.id);
             
             return (
@@ -2300,11 +2362,11 @@ const endX = (node.x / 100) * actualWidth;
                 id={`node-${node.id}`}
                 className={`absolute transform -translate-x-1/2 transition-all duration-300 ${
                   isVisible ? 'opacity-100' : 'opacity-20'
-                } ${isSelectable || viewMode === 'target' || isAdminMode ? 'cursor-pointer' : 'cursor-default'}`}
+                } ${!isAdminMode || isAdminMode ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
                   left: `${node.x}%`,
                   top: `${yPosition}px`,
-                  zIndex: isInPath || isTargetPath || isSelected ? 50 : hoveredNode === node.id ? 40 : 30
+                  zIndex: isTargetPath || isSelected ? 50 : hoveredNode === node.id ? 40 : 30
                 }}
                 draggable={isAdminMode}
                 onDragStart={(e) => handleDragStart(e, node.id)}
@@ -2323,7 +2385,7 @@ const endX = (node.x / 100) * actualWidth;
                 aria-selected={isSelected}
               >
                 {/* 노드 글로우 효과 */}
-                {(isInPath || hoveredNode === node.id || isTargetPath || isSelected) && (
+                {(hoveredNode === node.id || isTargetPath || isSelected) && (
                   <div 
                     className="absolute inset-0 w-40 h-40 rounded-full filter blur-3xl opacity-30 pointer-events-none"
                     style={{ backgroundColor: highContrastMode ? '#FFD700' : node.color }}
@@ -2332,23 +2394,32 @@ const endX = (node.x / 100) * actualWidth;
 
                 {/* 노드 카드 */}
                 <div className={`relative backdrop-blur-xl rounded-2xl border transition-all duration-300 ${
-                  isInPath || (targetNode === node.id) || isSelected
+                  (targetNode === node.id) || isSelected
                     ? 'bg-gray-600/30 border-gray-400/50 shadow-2xl scale-105'
                     : isTargetPath
                     ? 'bg-gray-700/30 border-gray-500/50 shadow-xl'
-                    : isSelectable
-                    ? 'bg-black/80 border-gray-500/50 animate-pulse'
                     : connectionStart === node.id
                     ? 'bg-gray-600/30 border-gray-400/50 shadow-2xl scale-110'
                     : hoveredNode === node.id
                     ? 'bg-black/80 border-gray-600/50 scale-105'
                     : 'bg-black/70 border-gray-700/50'
-                }`} 
-                style={{
-                  width: `${168 * scale}px`,
-                  padding: `${10 * scale}px`,
-                  fontSize: `${12 * scale}px`
-                }}>
+                    }`} 
+                    style={{
+                      width: isMobile ? `${120 * scale}px` : `${168 * scale}px`,
+                      padding: isMobile ? `${8 * scale}px` : `${10 * scale}px`,
+                      fontSize: `${12 * scale}px`,
+                      boxShadow: (targetNode === node.id) 
+                        ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f' 
+                        : isTargetPath 
+                        ? '0 0 0px #e0cf6f, 0 0 5px #e0cf6f' 
+                        : 'none'
+                    }}
+                    onClick={(e) => {
+                      if (isMobile && !isAdminMode) {
+                        e.stopPropagation();
+                        setMobilePopupNode(node.id === mobilePopupNode ? null : node.id);
+                      }
+                    }}>
                   {/* 관리자 모드 버튼들 */}
                   {isAdminMode && hoveredNode === node.id && (
                     <div className="absolute -top-3 -right-3 flex space-x-1">
@@ -2385,23 +2456,8 @@ const endX = (node.x / 100) * actualWidth;
                     </div>
                   )}
 
-                  {/* 선택 가능 표시 */}
-                  {isSelectable && (
-                    <div className="absolute -top-2 -right-2 bg-gray-500 rounded-full flex items-center justify-center animate-pulse"
-                         style={{
-                           width: `${20 * scale}px`,
-                           height: `${20 * scale}px`
-                         }}>
-                      <ChevronRight style={{ width: `${9 * scale}px`, height: `${9 * scale}px` }} />
-                    </div>
-                  )}
 
-                  {/* 목표 노드 표시 */}
-                  {targetNode === node.id && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                      <Target className="w-3 h-3 text-black" />
-                    </div>
-                  )}
+
 
                   {/* 다중 선택 표시 */}
                   {selectedNodes.includes(node.id) && (
@@ -2433,46 +2489,70 @@ const endX = (node.x / 100) * actualWidth;
                     </div>
                   )}
 
-                <div className="flex items-start" style={{ gap: `${8 * scale}px` }}>
-                  <span style={{ fontSize: `${20 * scale}px` }}>
-                    {node.icon}
-                  </span>
-                  <div className="flex-1">
-                    <h3 className={`font-bold ${highContrastMode ? 'text-white' : ''}`}
+                  {/* 모바일 컴팩트 뷰 */}
+                  {isMobile ? (
+                    <div className="flex flex-col items-center">
+                      <span style={{ fontSize: `${18 * scale}px`, marginBottom: `${4 * scale}px` }}>
+                        {node.icon}
+                      </span>
+                      <h3 className={`font-bold text-center ${highContrastMode ? 'text-white' : ''}`}
+                          style={{ 
+                            fontSize: `${14 * scale}px`,
+                            marginBottom: `${2 * scale}px`
+                          }}>
+                        {node.title}
+                      </h3>
+                      <p className={`text-center ${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
                         style={{ 
-                          fontSize: `${16 * scale}px`,
-                          marginBottom: `${4 * scale}px`
+                          fontSize: `${10 * scale}px`
                         }}>
-                      {node.title}
-                    </h3>
-                    {/* year 부분 삭제됨 */}
-                    <p className={`${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
-                       style={{ 
-                         fontSize: `${11 * scale}px`,
-                         marginTop: `${4 * scale}px`
-                       }}>
-                      {node.salary}
-                    </p>
+                        {node.salary}
+                      </p>
+                    </div>
+                  ) : (
+                  /* 데스크톱 뷰 - 기존 코드 */
+                  <div className="flex items-start" style={{ gap: `${8 * scale}px` }}>
+                    <span style={{ fontSize: `${20 * scale}px` }}>
+                      {node.icon}
+                    </span>
+                    <div className="flex-1">
+                      <h3 className={`font-bold ${highContrastMode ? 'text-white' : ''}`}
+                          style={{ 
+                            fontSize: `${16 * scale}px`,
+                            marginBottom: `${4 * scale}px`
+                          }}>
+                        {node.title}
+                      </h3>
+                      <p className={`${highContrastMode ? 'text-gray-100' : 'text-gray-300'}`}
+                        style={{ 
+                          fontSize: `${11 * scale}px`,
+                          marginTop: `${4 * scale}px`
+                        }}>
+                        {node.salary}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* 프로젝트 타입 인디케이터 - 우측 하단으로 이동하고 색상 추가 */}
-                <div className="flex items-center justify-end" style={{ marginTop: `${7 * scale}px` }}>
-                  <span className={`rounded-full font-medium ${
-                    node.projectType === 'operation' 
-                      ? 'bg-green-600/30 text-green-300 border border-green-500/30'
-                      : node.projectType === 'construction'
-                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
-                      : 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                  }`}
-                  style={{
-                    fontSize: `${11 * scale}px`,
-                    padding: `${3 * scale}px ${6 * scale}px`
-                  }}>
-                    {node.projectType === 'operation' ? '운영' :
-                    node.projectType === 'construction' ? '구축' : '복합'}
-                  </span>
-                </div>
+                {/* 프로젝트 타입 인디케이터 - 데스크톱에서만 표시 */}
+                {!isMobile && (
+                  <div className="flex items-center justify-end" style={{ marginTop: `${7 * scale}px` }}>
+                    <span className={`rounded-full font-medium ${
+                      node.projectType === 'operation' 
+                        ? 'bg-green-600/30 text-green-300 border border-green-500/30'
+                        : node.projectType === 'construction'
+                        ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                        : 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
+                    }`}
+                    style={{
+                      fontSize: `${11 * scale}px`,
+                      padding: `${3 * scale}px ${6 * scale}px`
+                    }}>
+                      {node.projectType === 'operation' ? '운영' :
+                      node.projectType === 'construction' ? '구축' : '복합'}
+                    </span>
+                  </div>
+                )}
 
                 {/* 연결 모드 인디케이터 */}
                 {connectionMode && connectionStart === node.id && (
@@ -2504,12 +2584,71 @@ const endX = (node.x / 100) * actualWidth;
                       </div>
                     )}
                     
+                                  {/* 모바일 상세 팝업 - 여기에 추가! */}
+              {isMobile && mobilePopupNode === node.id && (
+                <div 
+                  className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-64 p-4 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50"
+                  onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => setMobilePopupNode(null)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                  
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{node.icon}</span>
+                    <div>
+                      <h4 className="font-bold text-white">{node.title}</h4>
+                      <p className="text-sm text-gray-400">{node.year}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">연봉:</span>
+                      <span className="text-gray-200">{node.salary}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">타입:</span>
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        node.projectType === 'operation' 
+                          ? 'bg-green-600/30 text-green-300'
+                          : node.projectType === 'construction'
+                          ? 'bg-blue-600/30 text-blue-300'
+                          : 'bg-purple-600/30 text-purple-300'
+                      }`}>
+                        {node.projectType === 'operation' ? '운영' :
+                        node.projectType === 'construction' ? '구축' : '복합'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {node.description && (
+                    <p className="text-xs text-gray-300 mt-3 pt-3 border-t border-gray-700">
+                      {node.description}
+                    </p>
+                  )}
+                  
+                  {node.skills && node.skills.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <p className="text-xs font-medium text-gray-400 mb-2">필요 스킬</p>
+                      <div className="flex flex-wrap gap-1">
+                        {node.skills.map((skill, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 bg-gray-800/50 rounded">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+
                     <div className="pt-3 border-t border-gray-700">
                       <p className="text-xs text-gray-500">
                         {isAdminMode 
                           ? '더블클릭: 편집 | 우클릭: 메뉴' 
-                          : viewMode === 'explore' 
-                          ? '클릭하여 경로 선택' 
                           : '클릭하여 목표 설정'}
                       </p>
                     </div>
@@ -2519,6 +2658,11 @@ const endX = (node.x / 100) * actualWidth;
             );
           })}
         </div>
+
+
+        
+
+
 
         {/* 미니맵 */}
         {showMinimap && (
@@ -2645,17 +2789,11 @@ const y = (contextMenuPos.y - rect.top - pan.y);
           </div>
         )}
 
-        {/* 모바일 터치 인디케이터 */}
-        {isMobile && (
-          <div className="absolute top-4 left-4 bg-gray-900/80 rounded-lg p-2 text-xs text-gray-400">
-            <Smartphone className="w-4 h-4 inline mr-1" />
-            두 손가락: 줌 | 한 손가락: 이동
-          </div>
-        )}
+
       </div>
 
       {/* 하단 정보 패널 */}
-      {renderBottomPanel && renderBottomPanel({ nodes, selectedPath, targetNode, viewMode })}
+      {renderBottomPanel && renderBottomPanel({ nodes, targetNode, viewMode })}
 
       {/* 노드 편집 모달 */}
 {editingNode && (

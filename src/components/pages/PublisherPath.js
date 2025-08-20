@@ -1109,7 +1109,7 @@ const PublisherPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="hidden sm:block px-4 sm:px-6 pt-4 sm:pt-6">
   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
     <span className="metallic-text">웹 퍼블리셔 커리어패스</span>
   </h1>

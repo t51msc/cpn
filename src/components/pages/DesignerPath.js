@@ -1,5 +1,5 @@
 // DesignerPath.js
-// 자동 생성된 파일 - 2025-08-18T18:15:14.070Z
+// 자동 생성된 파일 - 2025-08-20T13:12:20.945Z
 import React from 'react';
 import AnimatedBackground from '../common/AnimatedBackground';
 import CareerPathViewer from '../common/CareerPathViewer';
@@ -1262,7 +1262,7 @@ const DesignerPath = () => {
     }
 };
 
-  const renderBottomPanel = ({ viewMode, selectedPath, targetNode, nodes }) => {
+  const renderBottomPanel = ({ viewMode, targetNode, nodes }) => {
     const getNodeInfo = (nodeId) => {
       const node = nodes[nodeId];
       return node ? `${node.title} (${node.year})` : '';
@@ -1271,12 +1271,7 @@ const DesignerPath = () => {
     return (
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-xl border-t border-gray-700/50">
         <div className="max-w-7xl mx-auto">
-          {viewMode === 'explore' && selectedPath.length > 0 && (
-            <div className="text-sm text-gray-300">
-              <span className="text-gray-500">선택된 경로:</span> {selectedPath.map(getNodeInfo).join(' → ')}
-            </div>
-          )}
-          {viewMode === 'target' && targetNode && (
+          {targetNode && (
             <div className="text-sm text-gray-300">
               <span className="text-gray-500">목표:</span> {getNodeInfo(targetNode)}
             </div>
@@ -1289,7 +1284,7 @@ const DesignerPath = () => {
   return (
     <AnimatedBackground>
       <div className="min-h-screen">
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="hidden sm:block px-4 sm:px-6 pt-4 sm:pt-6">
   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
     <span className="metallic-text">웹 디자이너 커리어패스</span>
   </h1>
