@@ -541,7 +541,23 @@ const resetView = useCallback(() => {
   }, []);
   
 const handleTouchMove = useCallback((e) => {
-  if (e.touches.length === 1 && lastTouchRef.current) {
+  // 두 손가락 핀치 줌
+  if (e.touches.length === 2 && touchStartDistance > 0) {
+    const currentDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    
+    const scaleDelta = currentDistance / touchStartDistance;
+    setScale(prev => {
+      const newScale = prev * scaleDelta;
+      return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newScale));
+    });
+    
+    setTouchStartDistance(currentDistance);
+  } 
+  // 한 손가락 팬
+  else if (e.touches.length === 1 && lastTouchRef.current) {
     const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
     const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
     
@@ -555,7 +571,7 @@ const handleTouchMove = useCallback((e) => {
       y: e.touches[0].clientY
     };
   }
-}, []);
+}, [touchStartDistance]);
   
   // ==================== 그리드 스냅 함수 ====================
   
@@ -1320,11 +1336,15 @@ const handleNodeClick = useCallback((nodeId, e) => {
   } else if (isAdminMode) {
     handleNodeSelection(nodeId, e);
   } else {
-    // 일반 모드에서는 항상 목표 설정
-    setTargetNode(nodeId);
+    // 일반 모드에서 목표 노드 토글 - 같은 노드 클릭 시 해제
+    if (targetNode === nodeId) {
+      setTargetNode(null);
+    } else {
+      setTargetNode(nodeId);
+    }
   }
 }, [isAdminMode, connectionMode, connectionStart, nodes, 
-    handleNodeSelection, canConnect, addToHistory, isMobile, mobilePopupNode]);  
+    handleNodeSelection, canConnect, addToHistory, isMobile, mobilePopupNode, targetNode]);  
   // ==================== 드래그 앤 드롭 ====================
   
   const handleDragStart = useCallback((e, nodeId) => {
