@@ -449,6 +449,7 @@ const CareerPathViewer = ({
   const [touchStartDistance, setTouchStartDistance] = useState(0);
   const [hoveredConnection, setHoveredConnection] = useState(null);
   const [scale, setScale] = useState(1);
+const [mobileZoomScale, setMobileZoomScale] = useState(1);  // 모바일 핀치 줌용 별도 상태
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
 
   // 상수 정의
@@ -549,13 +550,13 @@ const handleTouchMove = useCallback((e) => {
     );
     
     const scaleDelta = currentDistance / touchStartDistance;
-    setScale(prev => {
+    setMobileZoomScale(prev => {
       const newScale = prev * scaleDelta;
-      return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newScale));
+      return Math.max(0.5, Math.min(3, newScale));
     });
     
     setTouchStartDistance(currentDistance);
-  } 
+  }
   // 한 손가락 팬
   else if (e.touches.length === 1 && lastTouchRef.current) {
     const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
@@ -2247,18 +2248,19 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
   </g>
 </svg>
 
-        {/* 변환 컨테이너 */}
-      <div
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px)`,
-            transformOrigin: '0 0',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%'
-          }}
-        >
+              <div
+        style={{
+          transform: isMobile 
+            ? `translate(${pan.x}px, ${pan.y}px) scale(${mobileZoomScale})`
+            : `translate(${pan.x}px, ${pan.y}px)`,
+          transformOrigin: '0 0',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%'
+        }}
+      >
 {/* 프로젝트 타입별 영역 표시 (관리자 모드) */}
           {isAdminMode && (
             <div className="absolute inset-0 pointer-events-none">
