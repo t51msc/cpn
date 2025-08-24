@@ -2668,8 +2668,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 <div 
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
-                    width: `${160 * scale}px`,  // 노드(140)보다 약간만 큼
-                    padding: `${10 * scale}px`,
+                    width: `${170 * scale}px`,  
+                    padding: `${14 * scale}px`,  
                     fontSize: `${11 * scale}px`
                   }}
                   onClick={(e) => e.stopPropagation()}>
@@ -2677,8 +2677,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     onClick={() => setMobilePopupNode(null)}
                     className="absolute text-gray-400 hover:text-white"
                     style={{
-                      top: `${6 * scale}px`,
-                      right: `${6 * scale}px`,
+                      top: `${8 * scale}px`,
+                      right: `${8 * scale}px`,
                       width: `${14 * scale}px`,
                       height: `${14 * scale}px`
                     }}>
@@ -2686,8 +2686,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   </button>
                   
                   <div className="flex items-center" style={{ 
-                    gap: `${6 * scale}px`,
-                    marginBottom: `${6 * scale}px`
+                    gap: `${8 * scale}px`,
+                    marginBottom: `${8 * scale}px`
                   }}>
                     <span style={{ fontSize: `${16 * scale}px` }}>{node.icon}</span>
                     <h4 className="font-bold text-white" style={{ fontSize: `${12 * scale}px` }}>
@@ -2696,7 +2696,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   </div>
                   
                   {/* 타입 표시 */}
-                  <div style={{ marginBottom: `${6 * scale}px` }}>
+                  <div style={{ marginBottom: `${8 * scale}px` }}>
                     <span className={`rounded ${
                       node.projectType === 'operation' 
                         ? 'bg-green-600/30 text-green-300'
@@ -2706,7 +2706,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     }`}
                     style={{
                       fontSize: `${10 * scale}px`,
-                      padding: `${2 * scale}px ${4 * scale}px`,
+                      padding: `${3 * scale}px ${6 * scale}px`,
                       display: 'inline-block'
                     }}>
                       {node.projectType === 'operation' ? '운영' :
@@ -2714,45 +2714,41 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     </span>
                   </div>
                   
-                  {/* 설명 */}
+                  {/* 설명 - 전체 표시 */}
                   {node.description && (
-                    <p className="text-gray-300 line-clamp-2" style={{ 
+                    <p className="text-gray-300" style={{ 
                       fontSize: `${10 * scale}px`,
-                      marginTop: `${4 * scale}px`,
-                      paddingTop: `${4 * scale}px`,
-                      borderTopWidth: '1px'
+                      marginTop: `${6 * scale}px`,
+                      paddingTop: `${6 * scale}px`,
+                      borderTopWidth: '1px',
+                      lineHeight: 1.4
                     }}>
                       {node.description}
                     </p>
                   )}
                   
-                  {/* 필요 스킬 (최대 3개만 표시) */}
+                  {/* 필요 스킬 - 모두 표시 */}
                   {node.skills && node.skills.length > 0 && (
                     <div style={{ 
-                      marginTop: `${4 * scale}px`,
-                      paddingTop: `${4 * scale}px`,
+                      marginTop: `${6 * scale}px`,
+                      paddingTop: `${6 * scale}px`,
                       borderTopWidth: '1px'
                     }}>
                       <p className="font-medium text-gray-400" style={{ 
                         fontSize: `${9 * scale}px`,
-                        marginBottom: `${3 * scale}px`
+                        marginBottom: `${4 * scale}px`
                       }}>
                         스킬
                       </p>
-                      <div className="flex flex-wrap" style={{ gap: `${3 * scale}px` }}>
-                        {node.skills.slice(0, 3).map((skill, idx) => (
+                      <div className="flex flex-wrap" style={{ gap: `${4 * scale}px` }}>
+                        {node.skills.map((skill, idx) => (
                           <span key={idx} className="bg-gray-800/50 rounded" style={{
                             fontSize: `${9 * scale}px`,
-                            padding: `${1 * scale}px ${3 * scale}px`
+                            padding: `${2 * scale}px ${4 * scale}px`
                           }}>
                             {skill}
                           </span>
                         ))}
-                        {node.skills.length > 3 && (
-                          <span className="text-gray-500" style={{ fontSize: `${9 * scale}px` }}>
-                            +{node.skills.length - 3}
-                          </span>
-                        )}
                       </div>
                     </div>
                   )}
