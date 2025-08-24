@@ -2243,7 +2243,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               key={`${parentId}-${node.id}-target`}
               d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
               stroke="#e0cf6fff"
-              strokeWidth={2}
+              strokeWidth={2.5}
               fill="none"
               opacity={1}
             />
@@ -2663,40 +2663,40 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   </div>
                 )}
                 
-                {/* 모바일 상세 팝업 - 호버 정보 밖으로 이동! */}
+{/* 모바일 상세 팝업 - 호버 정보 밖으로 이동! */}
                 {isMobile && mobilePopupNode === node.id && (
                 <div 
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
-                    width: `${200 * mobileZoomScale}px`,
-                    padding: `${12 * mobileZoomScale}px`,
-                    fontSize: `${12 * mobileZoomScale}px`
+                    width: `${160 * scale}px`,  // 노드(140)보다 약간만 큼
+                    padding: `${10 * scale}px`,
+                    fontSize: `${11 * scale}px`
                   }}
                   onClick={(e) => e.stopPropagation()}>
                   <button 
                     onClick={() => setMobilePopupNode(null)}
                     className="absolute text-gray-400 hover:text-white"
                     style={{
-                      top: `${8 * mobileZoomScale}px`,
-                      right: `${8 * mobileZoomScale}px`,
-                      width: `${16 * mobileZoomScale}px`,
-                      height: `${16 * mobileZoomScale}px`
+                      top: `${6 * scale}px`,
+                      right: `${6 * scale}px`,
+                      width: `${14 * scale}px`,
+                      height: `${14 * scale}px`
                     }}>
                     <X style={{ width: '100%', height: '100%' }} />
                   </button>
                   
                   <div className="flex items-center" style={{ 
-                    gap: `${8 * mobileZoomScale}px`,
-                    marginBottom: `${8 * mobileZoomScale}px`
+                    gap: `${6 * scale}px`,
+                    marginBottom: `${6 * scale}px`
                   }}>
-                    <span style={{ fontSize: `${18 * mobileZoomScale}px` }}>{node.icon}</span>
-                    <h4 className="font-bold text-white" style={{ fontSize: `${14 * mobileZoomScale}px` }}>
+                    <span style={{ fontSize: `${16 * scale}px` }}>{node.icon}</span>
+                    <h4 className="font-bold text-white" style={{ fontSize: `${12 * scale}px` }}>
                       {node.title}
                     </h4>
                   </div>
                   
                   {/* 타입 표시 */}
-                  <div style={{ marginBottom: `${8 * mobileZoomScale}px` }}>
+                  <div style={{ marginBottom: `${6 * scale}px` }}>
                     <span className={`rounded ${
                       node.projectType === 'operation' 
                         ? 'bg-green-600/30 text-green-300'
@@ -2705,8 +2705,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                         : 'bg-purple-600/30 text-purple-300'
                     }`}
                     style={{
-                      fontSize: `${11 * mobileZoomScale}px`,
-                      padding: `${2 * mobileZoomScale}px ${6 * mobileZoomScale}px`,
+                      fontSize: `${10 * scale}px`,
+                      padding: `${2 * scale}px ${4 * scale}px`,
                       display: 'inline-block'
                     }}>
                       {node.projectType === 'operation' ? '운영' :
@@ -2716,38 +2716,43 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   
                   {/* 설명 */}
                   {node.description && (
-                    <p className="text-gray-300" style={{ 
-                      fontSize: `${11 * mobileZoomScale}px`,
-                      marginTop: `${6 * mobileZoomScale}px`,
-                      paddingTop: `${6 * mobileZoomScale}px`,
+                    <p className="text-gray-300 line-clamp-2" style={{ 
+                      fontSize: `${10 * scale}px`,
+                      marginTop: `${4 * scale}px`,
+                      paddingTop: `${4 * scale}px`,
                       borderTopWidth: '1px'
                     }}>
                       {node.description}
                     </p>
                   )}
                   
-                  {/* 필요 스킬 */}
+                  {/* 필요 스킬 (최대 3개만 표시) */}
                   {node.skills && node.skills.length > 0 && (
                     <div style={{ 
-                      marginTop: `${6 * mobileZoomScale}px`,
-                      paddingTop: `${6 * mobileZoomScale}px`,
+                      marginTop: `${4 * scale}px`,
+                      paddingTop: `${4 * scale}px`,
                       borderTopWidth: '1px'
                     }}>
                       <p className="font-medium text-gray-400" style={{ 
-                        fontSize: `${10 * mobileZoomScale}px`,
-                        marginBottom: `${4 * mobileZoomScale}px`
+                        fontSize: `${9 * scale}px`,
+                        marginBottom: `${3 * scale}px`
                       }}>
-                        필요 스킬
+                        스킬
                       </p>
-                      <div className="flex flex-wrap" style={{ gap: `${4 * mobileZoomScale}px` }}>
-                        {node.skills.map((skill, idx) => (
+                      <div className="flex flex-wrap" style={{ gap: `${3 * scale}px` }}>
+                        {node.skills.slice(0, 3).map((skill, idx) => (
                           <span key={idx} className="bg-gray-800/50 rounded" style={{
-                            fontSize: `${10 * mobileZoomScale}px`,
-                            padding: `${2 * mobileZoomScale}px ${4 * mobileZoomScale}px`
+                            fontSize: `${9 * scale}px`,
+                            padding: `${1 * scale}px ${3 * scale}px`
                           }}>
                             {skill}
                           </span>
                         ))}
+                        {node.skills.length > 3 && (
+                          <span className="text-gray-500" style={{ fontSize: `${9 * scale}px` }}>
+                            +{node.skills.length - 3}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
