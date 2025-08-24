@@ -527,6 +527,10 @@ const resetView = useCallback(() => {
   // ==================== 모바일 터치 핸들러 ====================
   
   const handleTouchStart = useCallback((e) => {
+    // 노드를 터치했는지 확인
+    const touchedElement = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+    const touchedNode = touchedElement?.closest('[id^="node-"]');
+    
     if (e.touches.length === 2) {
       const distance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -534,6 +538,10 @@ const resetView = useCallback(() => {
       );
       setTouchStartDistance(distance);
     } else if (e.touches.length === 1) {
+      // 노드를 터치한 경우 팬 동작 방지
+      if (touchedNode) {
+        return; // 팬 시작하지 않음
+      }
       lastTouchRef.current = {
         x: e.touches[0].clientX,
         y: e.touches[0].clientY
@@ -544,6 +552,7 @@ const resetView = useCallback(() => {
 const handleTouchMove = useCallback((e) => {
   // 두 손가락 핀치 줌
   if (e.touches.length === 2 && touchStartDistance > 0) {
+    e.preventDefault(); // 기본 동작 방지
     const currentDistance = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
@@ -557,8 +566,9 @@ const handleTouchMove = useCallback((e) => {
     
     setTouchStartDistance(currentDistance);
   }
-  // 한 손가락 팬
+  // 한 손가락 팬 - lastTouchRef가 있을 때만 (노드가 아닌 빈 공간에서 시작한 경우)
   else if (e.touches.length === 1 && lastTouchRef.current) {
+    e.preventDefault(); // 기본 동작 방지
     const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
     const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
     
@@ -1259,11 +1269,14 @@ const handleNodeClick = useCallback((nodeId, e) => {
   // 모바일에서 팝업 토글 처리 추가
   if (isMobile && !isAdminMode) {
     e.stopPropagation();
-    setMobilePopupNode(nodeId === mobilePopupNode ? null : nodeId);
-    // 목표 노드 토글도 함께 처리
-    if (targetNode === nodeId) {
+    // 동일 노드 체크를 두 상태 모두에 적용
+    if (nodeId === targetNode) {
+      // 같은 노드 재클릭 - 둘 다 비활성화
+      setMobilePopupNode(null);
       setTargetNode(null);
     } else {
+      // 다른 노드 클릭 - 둘 다 활성화
+      setMobilePopupNode(nodeId);
       setTargetNode(nodeId);
     }
     return;
@@ -2030,9 +2043,9 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
           width: '100%',
           height: '1600px',
           minHeight: '600px',
-          paddingTop: isMobile ? '60px' : '0px',  // 모바일에서만 상단 패딩
+          paddingTop: isMobile ? '60px' : '0px',
           cursor: isPanning ? 'grabbing' : 'default',
-          touchAction: 'none'
+          touchAction: isMobile ? 'manipulation' : 'none'  // 모바일에서는 manipulation으로 변경
         }}
         onMouseDown={handlePanStart}
         onMouseMove={handlePanMove}
@@ -2044,6 +2057,10 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
         onContextMenu={(e) => handleContextMenu(e)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
+        onTouchEnd={() => {
+          lastTouchRef.current = null;  // 터치 종료 시 리셋
+          setTouchStartDistance(0);
+        }}
       >
 {/* 연결선 SVG */}
 <svg 
@@ -2180,11 +2197,11 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           }
           
           let strokeColor = '#DAA520';
-          let strokeWidth = 3;
+          let strokeWidth = 2;
           
           if (isConnectedToHovered && !isInSelectedPath && !isSelected) {
             strokeColor = '#ad9469';
-            strokeWidth = 2.5;
+            strokeWidth = 1.5;
           }
           
           return (
@@ -2226,7 +2243,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               key={`${parentId}-${node.id}-target`}
               d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
               stroke="#e0cf6fff"
-              strokeWidth={3}
+              strokeWidth={2}
               fill="none"
               opacity={1}
             />
@@ -2253,7 +2270,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
         <path
           d={`M ${startX} ${startY} L ${endX} ${endY}`}
           stroke={canConnect(connectionStart, hoveredNode) ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'}
-          strokeWidth="2"
+          strokeWidth="1.5"
           strokeDasharray="8 4"
           fill="none"
         />
@@ -2398,19 +2415,28 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               <div
                 key={node.id}
                 id={`node-${node.id}`}
-                className={`absolute transform -translate-x-1/2 transition-all duration-300 ${
+                className={`absolute transition-all duration-300 ${
                   isVisible ? 'opacity-100' : 'opacity-20'
                 } ${!isAdminMode || isAdminMode ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
-                  left: `${node.x}%`,
+                  left: `calc(${node.x}% - ${(isMobile ? 140 * scale : 188 * scale) / 2}px)`,  // 노드 너비의 절반만큼 빼서 중앙 정렬
                   top: `${yPosition}px`,
-                  zIndex: isTargetPath || isSelected ? 50 : hoveredNode === node.id ? 40 : 30
+                  zIndex: isTargetPath || isSelected ? 50 : hoveredNode === node.id ? 40 : 30,
+                  // 모바일에서 터치 영역 보정
+                  ...(isMobile && {
+                    pointerEvents: 'auto',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  })
                 }}
                 draggable={isAdminMode}
                 onDragStart={(e) => handleDragStart(e, node.id)}
                 onMouseEnter={() => !isMobile && setHoveredNode(node.id)}
                 onMouseLeave={() => !isMobile && setHoveredNode(null)}
-                onClick={(e) => handleNodeClick(node.id, e)}
+                onClick={(e) => {
+  e.stopPropagation();
+  handleNodeClick(node.id, e);
+}}
                 onDoubleClick={() => {
                   if (isAdminMode) {
                     setEditingNode(node.id);
@@ -2446,18 +2472,21 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                       width: isMobile ? `${140 * scale}px` : `${188 * scale}px`,
                       padding: isMobile ? `${12 * scale}px` : `${14 * scale}px`,
                       fontSize: `${12 * scale}px`,
+                      // 모바일에서 터치 영역 확대
+                      ...(isMobile && {
+                        paddingTop: `${16 * scale}px`,
+                        paddingBottom: `${16 * scale}px`,
+                        minHeight: `${80 * scale}px`,
+                        pointerEvents: 'auto',
+                        WebkitTapHighlightColor: 'transparent'
+                      }),
                       boxShadow: (targetNode === node.id) 
                         ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f' 
                         : isTargetPath 
                         ? '0 0 0px #e0cf6f, 0 0 5px #e0cf6f' 
                         : 'none'
                     }}
-                    onClick={(e) => {
-                      if (isMobile && !isAdminMode) {
-                        e.stopPropagation();
-                        setMobilePopupNode(node.id === mobilePopupNode ? null : node.id);
-                      }
-                    }}>
+                    >
                   {/* 관리자 모드 버튼들 */}
                   {isAdminMode && hoveredNode === node.id && (
                     <div className="absolute -top-3 -right-3 flex space-x-1">
@@ -2624,67 +2653,6 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                       </div>
                     )}
                     
-                                  {/* 모바일 상세 팝업 - 여기에 추가! */}
-              {isMobile && mobilePopupNode === node.id && (
-                <div 
-                  className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-64 p-4 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50"
-                  onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    onClick={() => setMobilePopupNode(null)}
-                    className="absolute top-2 right-2 text-gray-400 hover:text-white">
-                    <X className="w-4 h-4" />
-                  </button>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{node.icon}</span>
-                    <div>
-                      <h4 className="font-bold text-white">{node.title}</h4>
-                      <p className="text-sm text-gray-400">{node.year}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">연봉:</span>
-                      <span className="text-gray-200">{node.salary}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">타입:</span>
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        node.projectType === 'operation' 
-                          ? 'bg-green-600/30 text-green-300'
-                          : node.projectType === 'construction'
-                          ? 'bg-blue-600/30 text-blue-300'
-                          : 'bg-purple-600/30 text-purple-300'
-                      }`}>
-                        {node.projectType === 'operation' ? '운영' :
-                        node.projectType === 'construction' ? '구축' : '복합'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {node.description && (
-                    <p className="text-xs text-gray-300 mt-3 pt-3 border-t border-gray-700">
-                      {node.description}
-                    </p>
-                  )}
-                  
-                  {node.skills && node.skills.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-700">
-                      <p className="text-xs font-medium text-gray-400 mb-2">필요 스킬</p>
-                      <div className="flex flex-wrap gap-1">
-                        {node.skills.map((skill, idx) => (
-                          <span key={idx} className="text-xs px-2 py-1 bg-gray-800/50 rounded">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-
                     <div className="pt-3 border-t border-gray-700">
                       <p className="text-xs text-gray-500">
                         {isAdminMode 
@@ -2694,6 +2662,97 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     </div>
                   </div>
                 )}
+                
+                {/* 모바일 상세 팝업 - 호버 정보 밖으로 이동! */}
+                {isMobile && mobilePopupNode === node.id && (
+                <div 
+                  className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
+                  style={{
+                    width: `${200 * mobileZoomScale}px`,
+                    padding: `${12 * mobileZoomScale}px`,
+                    fontSize: `${12 * mobileZoomScale}px`
+                  }}
+                  onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => setMobilePopupNode(null)}
+                    className="absolute text-gray-400 hover:text-white"
+                    style={{
+                      top: `${8 * mobileZoomScale}px`,
+                      right: `${8 * mobileZoomScale}px`,
+                      width: `${16 * mobileZoomScale}px`,
+                      height: `${16 * mobileZoomScale}px`
+                    }}>
+                    <X style={{ width: '100%', height: '100%' }} />
+                  </button>
+                  
+                  <div className="flex items-center" style={{ 
+                    gap: `${8 * mobileZoomScale}px`,
+                    marginBottom: `${8 * mobileZoomScale}px`
+                  }}>
+                    <span style={{ fontSize: `${18 * mobileZoomScale}px` }}>{node.icon}</span>
+                    <h4 className="font-bold text-white" style={{ fontSize: `${14 * mobileZoomScale}px` }}>
+                      {node.title}
+                    </h4>
+                  </div>
+                  
+                  {/* 타입 표시 */}
+                  <div style={{ marginBottom: `${8 * mobileZoomScale}px` }}>
+                    <span className={`rounded ${
+                      node.projectType === 'operation' 
+                        ? 'bg-green-600/30 text-green-300'
+                        : node.projectType === 'construction'
+                        ? 'bg-blue-600/30 text-blue-300'
+                        : 'bg-purple-600/30 text-purple-300'
+                    }`}
+                    style={{
+                      fontSize: `${11 * mobileZoomScale}px`,
+                      padding: `${2 * mobileZoomScale}px ${6 * mobileZoomScale}px`,
+                      display: 'inline-block'
+                    }}>
+                      {node.projectType === 'operation' ? '운영' :
+                      node.projectType === 'construction' ? '구축' : '복합'}
+                    </span>
+                  </div>
+                  
+                  {/* 설명 */}
+                  {node.description && (
+                    <p className="text-gray-300" style={{ 
+                      fontSize: `${11 * mobileZoomScale}px`,
+                      marginTop: `${6 * mobileZoomScale}px`,
+                      paddingTop: `${6 * mobileZoomScale}px`,
+                      borderTopWidth: '1px'
+                    }}>
+                      {node.description}
+                    </p>
+                  )}
+                  
+                  {/* 필요 스킬 */}
+                  {node.skills && node.skills.length > 0 && (
+                    <div style={{ 
+                      marginTop: `${6 * mobileZoomScale}px`,
+                      paddingTop: `${6 * mobileZoomScale}px`,
+                      borderTopWidth: '1px'
+                    }}>
+                      <p className="font-medium text-gray-400" style={{ 
+                        fontSize: `${10 * mobileZoomScale}px`,
+                        marginBottom: `${4 * mobileZoomScale}px`
+                      }}>
+                        필요 스킬
+                      </p>
+                      <div className="flex flex-wrap" style={{ gap: `${4 * mobileZoomScale}px` }}>
+                        {node.skills.map((skill, idx) => (
+                          <span key={idx} className="bg-gray-800/50 rounded" style={{
+                            fontSize: `${10 * mobileZoomScale}px`,
+                            padding: `${2 * mobileZoomScale}px ${4 * mobileZoomScale}px`
+                          }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
             );
           })}
