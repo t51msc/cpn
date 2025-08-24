@@ -674,10 +674,13 @@ const handleTouchMove = useCallback((e) => {
   
   const handleContextMenu = useCallback((e, nodeId = null) => {
     e.preventDefault();
-    setShowContextMenu(true);
-    setContextMenuPos({ x: e.clientX, y: e.clientY });
-    setContextMenuTarget(nodeId);
-  }, []);
+    // 관리자 모드일 때만 컨텍스트 메뉴 표시
+    if (isAdminMode) {
+      setShowContextMenu(true);
+      setContextMenuPos({ x: e.clientX, y: e.clientY });
+      setContextMenuTarget(nodeId);
+    }
+  }, [isAdminMode]);
   
   useEffect(() => {
     const handleClick = () => setShowContextMenu(false);
@@ -2123,7 +2126,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               key={`${parentId}-${node.id}`}
               d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
               stroke={highContrastMode ? '#484848' : '#363636'}
-              strokeWidth={1.5}
+              strokeWidth={isMobile ? 1.5 : 1.0}
               fill="none"
               opacity={0.7}
             />
@@ -2189,7 +2192,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               key={`${parentId}-${node.id}-highlight`}
               d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
               stroke={strokeColor}
-              strokeWidth={strokeWidth}
+              strokeWidth={isMobile ? strokeWidth * 1.0 : strokeWidth}
               fill="none"
               opacity={1}
               style={{
@@ -2223,7 +2226,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               key={`${parentId}-${node.id}-target`}
               d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
               stroke="#e0cf6fff"
-              strokeWidth={3.5}
+              strokeWidth={3}
               fill="none"
               opacity={1}
             />
@@ -2405,8 +2408,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 }}
                 draggable={isAdminMode}
                 onDragStart={(e) => handleDragStart(e, node.id)}
-                onMouseEnter={() => setHoveredNode(node.id)}
-                onMouseLeave={() => setHoveredNode(null)}
+                onMouseEnter={() => !isMobile && setHoveredNode(node.id)}
+                onMouseLeave={() => !isMobile && setHoveredNode(null)}
                 onClick={(e) => handleNodeClick(node.id, e)}
                 onDoubleClick={() => {
                   if (isAdminMode) {
@@ -2440,8 +2443,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     : 'bg-black/70 border-gray-700/50'
                     }`} 
                     style={{
-                      width: isMobile ? `${120 * scale}px` : `${168 * scale}px`,
-                      padding: isMobile ? `${8 * scale}px` : `${10 * scale}px`,
+                      width: isMobile ? `${140 * scale}px` : `${188 * scale}px`,
+                      padding: isMobile ? `${12 * scale}px` : `${14 * scale}px`,
                       fontSize: `${12 * scale}px`,
                       boxShadow: (targetNode === node.id) 
                         ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f' 
