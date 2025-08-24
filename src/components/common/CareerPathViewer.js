@@ -980,11 +980,14 @@ const scrollToNode = useCallback((nodeId) => {
 const visibleNodes = useMemo(() => {
   if (!containerRef.current) return Object.values(nodes);
   
+  // 모바일 줌 스케일 적용
+  const zoomScale = isMobile ? mobileZoomScale : 1;
+  
   const viewport = {
-    left: -pan.x,
-    right: containerRef.current.clientWidth - pan.x,
-    top: -pan.y,
-    bottom: containerRef.current.clientHeight - pan.y
+    left: -pan.x / zoomScale,
+    right: (containerRef.current.clientWidth - pan.x) / zoomScale,
+    top: -pan.y / zoomScale,
+    bottom: (containerRef.current.clientHeight - pan.y) / zoomScale
   };
   
   return Object.values(nodes).filter(node => {
@@ -992,13 +995,13 @@ const visibleNodes = useMemo(() => {
     const yPosition = 60 * scale + node.level * levelHeight;
     const xPosition = (node.x / 100) * containerRef.current.clientWidth;
     
-    const margin = 100;
+    const margin = 100 / zoomScale; // 마진도 줌 스케일에 맞게 조정
     return xPosition > viewport.left - margin &&
           xPosition < viewport.right + margin &&
           yPosition > viewport.top - margin &&
           yPosition < viewport.bottom + margin;
   });
-}, [nodes, pan]);
+}, [nodes, pan, isMobile, mobileZoomScale, scale]);
   
   // ==================== 로컬스토리지 관리 ====================
   
@@ -1254,6 +1257,12 @@ const handleNodeClick = useCallback((nodeId, e) => {
   if (isMobile && !isAdminMode) {
     e.stopPropagation();
     setMobilePopupNode(nodeId === mobilePopupNode ? null : nodeId);
+    // 목표 노드 토글도 함께 처리
+    if (targetNode === nodeId) {
+      setTargetNode(null);
+    } else {
+      setTargetNode(nodeId);
+    }
     return;
   }
   
@@ -2038,7 +2047,9 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
   className="absolute inset-0 w-full h-full pointer-events-none"
   style={{ overflow: 'visible' }}
 >
-  <g transform={`translate(${pan.x}, ${pan.y})`}>
+  <g transform={isMobile 
+    ? `translate(${pan.x}, ${pan.y}) scale(${mobileZoomScale})`
+    : `translate(${pan.x}, ${pan.y})`}>
     {/* 그리드 (옵션) */}
     {showGrid && (
       <>
@@ -2299,16 +2310,18 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
               </div>
             ))}
             
-          {/* 관리자 모드에서 클릭 가능한 연결선 */}
-          {isAdminMode && (
-            <svg
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                width: '100%',
-                height: '100%'
-              }}
-            >
-              {Object.values(nodes).map(node => 
+            {/* 관리자 모드에서 클릭 가능한 연결선 */}
+            {isAdminMode && (
+              <svg
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  transform: isMobile ? `scale(${mobileZoomScale})` : 'none',
+                  transformOrigin: '0 0'
+                }}
+              >
+                {Object.values(nodes).map(node =>
                 node.parents?.map(parentId => {
                   const parent = nodes[parentId];
                   if (!parent) return null;
@@ -2490,12 +2503,14 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
 
                   {/* 레벨 인디케이터 */}
                   {!selectedNodes.includes(node.id) && (
-                    <div className="absolute -top-2 -left-2 bg-gray-800 rounded-full flex items-center justify-center font-bold"
-                         style={{
-                           width: `${20 * scale}px`,
-                           height: `${20 * scale}px`,
-                           fontSize: `${10 * scale}px`
-                         }}>
+                    <div className="absolute bg-gray-800 rounded-full flex items-center justify-center font-bold"
+                        style={{
+                          top: `${-10 * scale}px`,
+                          left: `${-10 * scale}px`,
+                          width: `${20 * scale}px`,
+                          height: `${20 * scale}px`,
+                          fontSize: `${10 * scale}px`
+                        }}>
                       L{node.level}
                     </div>
                   )}
