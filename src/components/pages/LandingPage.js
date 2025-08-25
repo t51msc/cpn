@@ -277,7 +277,8 @@ const handleBack = () => {
   {isMobile && (
     <div className="mb-6 animate-fade-in">
       <p className="text-gray-600 text-xs sm:text-sm px-4 max-w-md mx-auto">
-        모바일에서는 가독성이 뛰어나지 못하니, PC로 접속하시길 권장드립니다.
+        모바일에서는 가독성이 뛰어나지 못하니, <br />
+        가급적 PC로 접속하시길 권장드립니다.
       </p>
     </div>
   )}
