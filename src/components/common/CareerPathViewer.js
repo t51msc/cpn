@@ -2448,10 +2448,10 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 aria-label={`${node.title} - ${node.year} - ${node.salary}`}
                 aria-selected={isSelected}
               >
-                {/* 노드 글로우 효과 */}
-                {(hoveredNode === node.id || isTargetPath || isSelected) && (
+                {/* 노드 글로우 효과 - 모바일에서는 비활성화 또는 간소화 */}
+                {!isMobile && (hoveredNode === node.id || isTargetPath || isSelected) && (
                   <div 
-                    className="absolute rounded-full filter blur-3xl opacity-30 pointer-events-none"
+                    className="absolute rounded-full filter blur-xl opacity-20 pointer-events-none"
                     style={{ 
                       backgroundColor: highContrastMode ? '#FFD700' : node.color,
                       width: isMobile ? `${140 * scale}px` : '160px',
@@ -2464,7 +2464,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 )}
 
                 {/* 노드 카드 */}
-                <div className={`relative backdrop-blur-xl rounded-2xl border transition-all duration-300 ${
+                <div className={`relative ${!isMobile ? 'backdrop-blur-xl' : 'backdrop-blur-sm'} rounded-2xl border transition-all duration-300 ${
                   (targetNode === node.id) || isSelected
                     ? 'bg-gray-600/30 border-gray-400/50 shadow-2xl scale-105'
                     : isTargetPath
