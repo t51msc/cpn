@@ -1654,14 +1654,14 @@ export default ${careerType.charAt(0).toUpperCase() + careerType.slice(1)}Path;`
     onClick={() => navigate('/')}
     className="absolute top-4 left-4 z-20 p-2 bg-gray-800/80 backdrop-blur hover:bg-gray-700/80 rounded-full transition-colors"
     style={{ 
-      width: `${50 * scale}px`, 
-      height: `${50 * scale}px`,
+      width: `${100 * scale}px`, 
+      height: `${100 * scale}px`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
     }}
   >
-    <ArrowLeft style={{ width: `${25 * scale}px`, height: `${25 * scale}px` }} />
+    <ArrowLeft style={{ width: `${50 * scale}px`, height: `${50 * scale}px` }} />
   </button>
 )}
 
@@ -2487,11 +2487,17 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                         pointerEvents: 'auto',
                         WebkitTapHighlightColor: 'transparent'
                       }),
-                      boxShadow: (targetNode === node.id) 
-                        ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f' 
-                        : isTargetPath 
-                        ? '0 0 0px #e0cf6f, 0 0 5px #e0cf6f' 
-                        : 'none'
+                      boxShadow: isMobile 
+  ? ((targetNode === node.id) 
+    ? '0 0 9px #e0cf6f'           // 모바일 목표 노드: 단일 그림자
+    : isTargetPath 
+    ? '0 0 3px #e0cf6f'           // 모바일 경로 노드: 약한 그림자
+    : 'none')
+  : ((targetNode === node.id) 
+    ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f'  // 데스크탑 목표 노드: 이중 그림자
+    : isTargetPath 
+    ? '0 0 0px #e0cf6f, 0 0 5px #e0cf6f'     // 데스크탑 경로 노드: 작은 그림자
+    : 'none')
                     }}
                     >
                   {/* 관리자 모드 버튼들 */}
@@ -2675,7 +2681,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 <div 
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
-                    width: `${170 * scale}px`,  
+                    width: `${220 * scale}px`,  
                     padding: `${14 * scale}px`,  
                     fontSize: `${11 * scale}px`
                   }}
@@ -2696,8 +2702,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     gap: `${8 * scale}px`,
                     marginBottom: `${8 * scale}px`
                   }}>
-                    <span style={{ fontSize: `${16 * scale}px` }}>{node.icon}</span>
-                    <h4 className="font-bold text-white" style={{ fontSize: `${12 * scale}px` }}>
+                    <span style={{ fontSize: `${20 * scale}px` }}>{node.icon}</span>
+                    <h4 className="font-bold text-white" style={{ fontSize: `${16 * scale}px` }}>
                       {node.title}
                     </h4>
                   </div>
