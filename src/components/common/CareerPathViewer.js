@@ -2451,8 +2451,15 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 {/* 노드 글로우 효과 */}
                 {(hoveredNode === node.id || isTargetPath || isSelected) && (
                   <div 
-                    className="absolute inset-0 w-40 h-40 rounded-full filter blur-3xl opacity-30 pointer-events-none"
-                    style={{ backgroundColor: highContrastMode ? '#FFD700' : node.color }}
+                    className="absolute rounded-full filter blur-3xl opacity-30 pointer-events-none"
+                    style={{ 
+                      backgroundColor: highContrastMode ? '#FFD700' : node.color,
+                      width: isMobile ? `${140 * scale}px` : '160px',
+                      height: isMobile ? `${140 * scale}px` : '160px',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)'
+                    }}
                   />
                 )}
 
