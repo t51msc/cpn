@@ -11,6 +11,7 @@ const LandingPage = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [error, setError] = useState(false);
   const [titleGlitch, setTitleGlitch] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const titleRef = useRef(null);
   const hoverTimeout = useRef(null);
   
@@ -24,6 +25,19 @@ useEffect(() => {
   }
 }, []);
 
+// 모바일 감지
+useEffect(() => {
+  const checkMobile = () => {
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768;
+    setIsMobile(mobile);
+  };
+  
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  
+  return () => window.removeEventListener('resize', checkMobile);
+}, []);
 
   const careers = [
     { id: 'designer', title: '디자이너', icon: '🎨' },
@@ -258,14 +272,23 @@ const handleBack = () => {
           <div className="flex items-center justify-center min-h-screen">
             <div className="max-w-4xl w-full">
               {/* 타이틀 */}
-              <div className="text-center mb-16">
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 tracking-wider">
-                  <span className="metallic-text">당신의 직무를 선택해주세요</span>
-                </h1>
-                <p className="text-gray-400 text-sm sm:text-base md:text-lg">
-                  선택한 직군에 맞는 커리어 패스를 안내해드립니다
-                </p>
-              </div>
+<div className="text-center mb-16">
+  {/* 모바일 권장 메시지 */}
+  {isMobile && (
+    <div className="mb-6 animate-fade-in">
+      <p className="text-gray-600 text-xs sm:text-sm px-4 max-w-md mx-auto">
+        모바일에서는 가독성이 뛰어나지 못하니, PC로 접속하시길 권장드립니다.
+      </p>
+    </div>
+  )}
+  
+  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 tracking-wider">
+    <span className="metallic-text">당신의 직무를 선택해주세요</span>
+  </h1>
+  <p className="text-gray-400 text-sm sm:text-base md:text-lg">
+    선택한 직군에 맞는 커리어 패스를 안내해드립니다
+  </p>
+</div>
 
     {/* 직군 선택 그리드 */}
               <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-6 max-w-full md:max-w-2xl mx-auto px-4 md:px-0">
