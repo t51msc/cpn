@@ -2489,9 +2489,9 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                       }),
                       boxShadow: isMobile 
   ? ((targetNode === node.id) 
-    ? '0 0 9px #e0cf6f'           // 모바일 목표 노드: 단일 그림자
+    ? '0 0 7px #e0cf6f'           // 모바일 목표 노드: 단일 그림자
     : isTargetPath 
-    ? '0 0 3px #e0cf6f'           // 모바일 경로 노드: 약한 그림자
+    ? '0 0 2px #e0cf6f'           // 모바일 경로 노드: 약한 그림자
     : 'none')
   : ((targetNode === node.id) 
     ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f'  // 데스크탑 목표 노드: 이중 그림자
@@ -2681,7 +2681,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                 <div 
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
-                    width: `${220 * scale}px`,  
+                    width: `${300 * scale}px`,  
                     padding: `${14 * scale}px`,  
                     fontSize: `${11 * scale}px`
                   }}
@@ -2702,8 +2702,8 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                     gap: `${8 * scale}px`,
                     marginBottom: `${8 * scale}px`
                   }}>
-                    <span style={{ fontSize: `${20 * scale}px` }}>{node.icon}</span>
-                    <h4 className="font-bold text-white" style={{ fontSize: `${16 * scale}px` }}>
+                    <span style={{ fontSize: `${22 * scale}px` }}>{node.icon}</span>
+                    <h4 className="font-bold text-white" style={{ fontSize: `${24 * scale}px` }}>
                       {node.title}
                     </h4>
                   </div>
@@ -2718,7 +2718,7 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                         : 'bg-purple-600/30 text-purple-300'
                     }`}
                     style={{
-                      fontSize: `${10 * scale}px`,
+                      fontSize: `${18 * scale}px`,
                       padding: `${3 * scale}px ${6 * scale}px`,
                       display: 'inline-block'
                     }}>
@@ -2730,9 +2730,9 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   {/* 설명 - 전체 표시 */}
                   {node.description && (
                     <p className="text-gray-300" style={{ 
-                      fontSize: `${10 * scale}px`,
-                      marginTop: `${6 * scale}px`,
-                      paddingTop: `${6 * scale}px`,
+                      fontSize: `${20 * scale}px`,
+                      marginTop: `${8 * scale}px`,
+                      paddingTop: `${8 * scale}px`,
                       borderTopWidth: '1px',
                       lineHeight: 1.4
                     }}>
@@ -2743,21 +2743,21 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
                   {/* 필요 스킬 - 모두 표시 */}
                   {node.skills && node.skills.length > 0 && (
                     <div style={{ 
-                      marginTop: `${6 * scale}px`,
-                      paddingTop: `${6 * scale}px`,
+                      marginTop: `${8 * scale}px`,
+                      paddingTop: `${8 * scale}px`,
                       borderTopWidth: '1px'
                     }}>
                       <p className="font-medium text-gray-400" style={{ 
-                        fontSize: `${9 * scale}px`,
-                        marginBottom: `${4 * scale}px`
+                        fontSize: `${18 * scale}px`,
+                        marginBottom: `${6 * scale}px`
                       }}>
                         스킬
                       </p>
-                      <div className="flex flex-wrap" style={{ gap: `${4 * scale}px` }}>
+                      <div className="flex flex-wrap" style={{ gap: `${8 * scale}px` }}>
                         {node.skills.map((skill, idx) => (
                           <span key={idx} className="bg-gray-800/50 rounded" style={{
-                            fontSize: `${9 * scale}px`,
-                            padding: `${2 * scale}px ${4 * scale}px`
+                            fontSize: `${16 * scale}px`,
+                            padding: `${4 * scale}px ${6 * scale}px`
                           }}>
                             {skill}
                           </span>
