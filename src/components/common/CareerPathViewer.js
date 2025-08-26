@@ -2226,7 +2226,7 @@ return (
         })
       )}
       
-      {/* 목표 경로는 마지막에 렌더링 (최상위) */}
+{/* 목표 경로는 마지막에 렌더링 (최상위) */}
       {targetNode && Object.values(nodes).map(node => 
         node.parents?.map(parentId => {
           const parent = nodes[parentId];
@@ -2256,6 +2256,34 @@ return (
           );
         })
       )}
+      
+      {/* 목표 노드의 다음 레벨 연결선 별도 렌더링 */}
+      {targetNode && nodes[targetNode]?.children?.map(childId => {
+        const child = nodes[childId];
+        if (!child) return null;
+        
+        const levelHeight = 200 * scale;
+        const cardHeight = 80 * scale;
+        
+        const startX = (nodes[targetNode].x / 100) * containerWidth;
+        const startY = 60 * scale + nodes[targetNode].level * levelHeight + cardHeight / 2;
+        const endX = (child.x / 100) * containerWidth;
+        const endY = 60 * scale + child.level * levelHeight + cardHeight / 2;
+        const midY = startY + (endY - startY) / 2;
+        
+        return (
+          <path
+            key={`${targetNode}-${childId}-next`}
+            d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+            stroke="#ad9469"  // 마우스오버 색상
+            strokeWidth={isMobile 
+              ? (MOBILE_NORMAL_LINE + MOBILE_HIGHLIGHT_LINE) / 2  // 모바일: 중간 굵기
+              : DESKTOP_HIGHLIGHT_LINE * 0.75}  // 데스크탑: 더 얇게
+            fill="none"
+            opacity={1}
+          />
+        );
+      })}
     </g>
     
     {/* 연결 모드 임시선 */}
@@ -2495,17 +2523,29 @@ return (
                         pointerEvents: 'auto',
                         WebkitTapHighlightColor: 'transparent'
                       }),
-                      boxShadow: isMobile 
-  ? ((targetNode === node.id) 
-    ? '0 0 7px #e0cf6f'           // 모바일 목표 노드: 단일 그림자
-    : isTargetPath 
-    ? '0 0 2px #e0cf6f'           // 모바일 경로 노드: 약한 그림자
-    : 'none')
-  : ((targetNode === node.id) 
-    ? '0 0 10px #e0cf6f, 0 0 20px #e0cf6f'  // 데스크탑 목표 노드: 이중 그림자
-    : isTargetPath 
-    ? '0 0 0px #e0cf6f, 0 0 5px #e0cf6f'     // 데스크탑 경로 노드: 작은 그림자
-    : 'none')
+                      boxShadow: (() => {
+                        // 다음 레벨 노드 체크: 목표 노드의 직접 자식
+                        const isNextLevel = targetNode && nodes[targetNode]?.children?.includes(node.id);
+                        
+                        if (isMobile) {
+                          if (targetNode === node.id) {
+                            return '0 0 7px #e0cf6f';  // 모바일 목표 노드
+                          } else if (isNextLevel) {
+                            return '0 0 1px #e0cf6f';  // 모바일 다음 레벨: 더 약한 그림자
+                          } else if (isTargetPath) {
+                            return '0 0 2px #e0cf6f';  // 모바일 일반 경로
+                          }
+                        } else {
+                          if (targetNode === node.id) {
+                            return '0 0 10px #e0cf6f, 0 0 20px #e0cf6f';  // 데스크탑 목표 노드
+                          } else if (isNextLevel) {
+                            return '0 0 3px #e0cf6f';  // 데스크탑 다음 레벨: 중간 그림자
+                          } else if (isTargetPath) {
+                            return '0 0 5px #e0cf6f';  // 데스크탑 일반 경로
+                          }
+                        }
+                        return 'none';
+                      })()
                     }}
                     >
                   {/* 관리자 모드 버튼들 */}
@@ -2690,7 +2730,7 @@ return (
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
                     width: `${300 * scale}px`,  
-                    padding: `${14 * scale}px`,  
+                    padding: `${18 * scale}px`,  
                     fontSize: `${11 * scale}px`
                   }}
                   onClick={(e) => e.stopPropagation()}>
@@ -2698,10 +2738,10 @@ return (
                     onClick={() => setMobilePopupNode(null)}
                     className="absolute text-gray-400 hover:text-white"
                     style={{
-                      top: `${8 * scale}px`,
-                      right: `${8 * scale}px`,
-                      width: `${14 * scale}px`,
-                      height: `${14 * scale}px`
+                      top: `${10 * scale}px`,
+                      right: `${10 * scale}px`,
+                      width: `${24 * scale}px`,
+                      height: `${24 * scale}px`
                     }}>
                     <X style={{ width: '100%', height: '100%' }} />
                   </button>
