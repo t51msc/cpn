@@ -458,7 +458,13 @@ const [mobileZoomScale, setMobileZoomScale] = useState(1);  // 모바일 핀치 
   const MAX_ZOOM = 2.5;
   const ZOOM_STEP = 0.1;
   const MAX_HISTORY = 50;
-  
+
+  // 연결선 굵기 상수
+  const MOBILE_NORMAL_LINE = 0.2;      // 모바일 일반선
+  const MOBILE_HIGHLIGHT_LINE = 0.5;   // 모바일 강조선
+  const DESKTOP_NORMAL_LINE = 1.0;     // 데스크탑 일반선  
+  const DESKTOP_HIGHLIGHT_LINE = 2.0;  // 데스크탑 강조선
+    
   // ==================== Refs ====================
   
   const containerRef = useRef(null);
@@ -2140,13 +2146,13 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           
           return (
             <path
-              key={`${parentId}-${node.id}`}
-              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
-              stroke={highContrastMode ? '#484848' : '#363636'}
-              strokeWidth={isMobile ? 1.5 : 1.0}
-              fill="none"
-              opacity={0.7}
-            />
+  key={`${parentId}-${node.id}`}
+  d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+  stroke={highContrastMode ? '#484848' : '#363636'}
+  strokeWidth={isMobile ? MOBILE_NORMAL_LINE : DESKTOP_NORMAL_LINE}
+  fill="none"
+  opacity={0.7}
+/>
           );
         })
       )}
@@ -2197,26 +2203,26 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           }
           
           let strokeColor = '#DAA520';
-          let strokeWidth = 2;
-          
-          if (isConnectedToHovered && !isInSelectedPath && !isSelected) {
-            strokeColor = '#ad9469';
-            strokeWidth = 1.5;
-          }
-          
-          return (
-            <path
-              key={`${parentId}-${node.id}-highlight`}
-              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
-              stroke={strokeColor}
-              strokeWidth={isMobile ? strokeWidth * 1.0 : strokeWidth}
-              fill="none"
-              opacity={1}
-              style={{
-                filter: (isInSelectedPath || isSelected) ? 'drop-shadow(0 0 8px #DAA520)' : 'none'
-              }}
-            />
-          );
+let strokeWidth = isMobile ? MOBILE_HIGHLIGHT_LINE : DESKTOP_HIGHLIGHT_LINE;
+
+if (isConnectedToHovered && !isInSelectedPath && !isSelected) {
+  strokeColor = '#ad9469';
+  strokeWidth = isMobile ? MOBILE_HIGHLIGHT_LINE * 0.75 : DESKTOP_HIGHLIGHT_LINE * 0.75;
+}
+
+return (
+  <path
+    key={`${parentId}-${node.id}-highlight`}
+    d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+    stroke={strokeColor}
+    strokeWidth={strokeWidth}
+    fill="none"
+    opacity={1}
+    style={{
+      filter: (isInSelectedPath || isSelected) ? 'drop-shadow(0 0 8px #DAA520)' : 'none'
+    }}
+  />
+);
         })
       )}
       
@@ -2240,13 +2246,13 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           
           return (
             <path
-              key={`${parentId}-${node.id}-target`}
-              d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
-              stroke="#e0cf6fff"
-              strokeWidth={2.5}
-              fill="none"
-              opacity={1}
-            />
+  key={`${parentId}-${node.id}-target`}
+  d={`M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`}
+  stroke="#e0cf6fff"
+  strokeWidth={isMobile ? MOBILE_HIGHLIGHT_LINE * 1.2 : DESKTOP_HIGHLIGHT_LINE * 1.25}
+  fill="none"
+  opacity={1}
+/>
           );
         })
       )}
@@ -2308,15 +2314,17 @@ const endY = 60 * scale + node.level * levelHeight + cardHeight / 2;
           )}
 
 {/* 레벨별 구분선 */}
-            {[0, 1, 2, 3, 4, 5, 6].map(level => (
-              <div
-                key={level}
-                className="absolute left-0 right-0 border-t-2 border-dashed"
-                style={{ 
-                  top: `${60 * scale + level * 200 * scale - 40 * scale}px`,
-                  borderColor: 'rgba(107, 114, 128, 0.15)'
-                }}
-              >
+              {[0, 1, 2, 3, 4, 5, 6].map(level => (
+                <div
+                  key={level}
+                  className="absolute left-0 right-0 border-dashed"
+                  style={{ 
+                    top: `${60 * scale + level * 200 * scale - 40 * scale}px`,
+                    borderColor: 'rgba(107, 114, 128, 0.15)',
+                    borderTopWidth: isMobile ? '1px' : '2px',
+                    borderTopStyle: 'dashed'
+                  }}
+                >
               <span className="absolute -top-3 left-4 px-2 bg-black text-gray-400"
                     style={{ fontSize: `${12 * scale}px` }}>
                 {level === 0 && '입문 (1-3년차)'}
