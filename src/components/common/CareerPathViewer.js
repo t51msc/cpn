@@ -2730,8 +2730,8 @@ return (
                 <div 
                   className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 backdrop-blur-xl bg-black/95 rounded-xl border border-gray-700/50 shadow-2xl z-50 mobile-popup"
                   style={{
-                    width: `${300 * scale}px`,  
-                    padding: `${18 * scale}px ${24 * scale}px`,  
+                    width: `${320 * scale}px`,  
+                    padding: `${18 * scale}px ${28 * scale}px`,  
                     fontSize: `${11 * scale}px`
                   }}
                   onClick={(e) => e.stopPropagation()}>
@@ -2739,8 +2739,8 @@ return (
                     onClick={() => setMobilePopupNode(null)}
                     className="absolute text-gray-400 hover:text-white"
                     style={{
-                      top: `${14 * scale}px`,
-                      right: `${14 * scale}px`,
+                      top: `${16 * scale}px`,
+                      right: `${16 * scale}px`,
                       width: `${24 * scale}px`,
                       height: `${24 * scale}px`
                     }}>

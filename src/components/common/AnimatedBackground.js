@@ -45,7 +45,7 @@ const AnimatedBackground = ({
             Math.pow(particleY - mousePosition.y, 2)
           );
           
-          const spotlightRadius = 192;
+          const spotlightRadius = window.innerWidth <= 768 ? 48 : 192;
           let speedMultiplier = 1;
           
           if (distance < spotlightRadius) {
@@ -193,18 +193,20 @@ useEffect(() => {
 {/* 마우스 추적 스포트라이트 */}
 {enableSpotlight && (
   <div 
-    className="fixed w-96 h-96 rounded-full pointer-events-none transition-opacity duration-300"
+    className="fixed rounded-full pointer-events-none transition-opacity duration-300"
     style={{
-      left: `${mousePosition.x - 192}px`,
-      top: `${mousePosition.y - 192}px`,
+      width: window.innerWidth <= 768 ? '96px' : '384px',  // 모바일 192px, 데스크탑 384px
+      height: window.innerWidth <= 768 ? '96px' : '384px',
+      left: `${mousePosition.x - (window.innerWidth <= 768 ? 48 : 192)}px`,
+      top: `${mousePosition.y - (window.innerWidth <= 768 ? 48 : 192)}px`,
       transform: 'translate(0, 0)', // GPU 가속
       willChange: 'left, top',
-            background: `radial-gradient(circle, rgba(192, 192, 192, ${spotlightIntensity}) 0%, transparent 70%)`,
-            filter: 'blur(40px)',
-            opacity: isHovering ? 0.88 : 0.33
-          }}
-        />
-      )}
+      background: `radial-gradient(circle, rgba(192, 192, 192, ${spotlightIntensity}) 0%, transparent 70%)`,
+      filter: window.innerWidth <= 768 ? 'blur(20px)' : 'blur(40px)',  // 모바일에서 블러도 줄임
+      opacity: isHovering ? 0.88 : 0.33
+    }}
+  />
+)}
 
       {/* 콘텐츠 */}
       <div 
