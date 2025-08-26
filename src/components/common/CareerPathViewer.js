@@ -2455,9 +2455,9 @@ return (
                   isVisible ? 'opacity-100' : 'opacity-20'
                 } ${!isAdminMode || isAdminMode ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
-                  left: `calc(${node.x}% - ${(isMobile ? 140 * scale : 188 * scale) / 2}px)`,  // 노드 너비의 절반만큼 빼서 중앙 정렬
+                  left: `calc(${node.x}% - ${(isMobile ? 140 * scale : 188 * scale) / 2}px)`,
                   top: `${yPosition}px`,
-                  zIndex: isTargetPath || isSelected ? 50 : hoveredNode === node.id ? 40 : 30,
+                  zIndex: hoveredNode === node.id ? 60 : isTargetPath || isSelected ? 50 : 30,
                   // 모바일에서 터치 영역 보정
                   ...(isMobile && {
                     pointerEvents: 'auto',
@@ -2695,9 +2695,10 @@ return (
               {/* 호버 정보 */}
               {hoveredNode === node.id && !isMobile && (
                 <div 
-                  className={`absolute top-0 w-72 p-4 backdrop-blur-xl bg-black/90 rounded-xl border border-gray-700/50 shadow-2xl z-50 ${
+                  className={`absolute top-0 w-72 p-4 backdrop-blur-xl bg-black/90 rounded-xl border border-gray-700/50 shadow-2xl ${
                     node.x >= 80 ? 'right-full mr-4' : 'left-full ml-4'
-                  }`}>
+                  }`}
+                  style={{ zIndex: 100 }}>
                   <h4 className="font-bold mb-2">{node.title}</h4>
                     <p className="text-sm text-gray-300 mb-3">{node.description}</p>
                     
