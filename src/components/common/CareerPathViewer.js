@@ -2353,7 +2353,7 @@ return (
                     borderTopStyle: 'dashed'
                   }}
                 >
-              <span className="absolute -top-3 left-4 px-2 bg-black text-gray-400"
+              <span className="absolute -top-0 left-4 px-2 bg-black text-gray-400"
                     style={{ fontSize: `${12 * scale}px` }}>
                 {level === 0 && '입문 (1-3년차)'}
                 {level === 1 && '체계화 (4-7년차)'}
